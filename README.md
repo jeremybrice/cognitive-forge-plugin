@@ -6,7 +6,7 @@
 
 A curated collection of Claude Code plugins for reasoning, analysis, and creative exploration.
 
-The Forge Marketplace is a plugin catalog for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Each plugin provides specialized slash commands that extend Claude's capabilities — from multi-agent debate to guided concept exploration.
+The Forge Marketplace is a plugin catalog for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Claude Cowork](https://claude.com/blog/cowork-plugins).  
 
 ## Installation
 

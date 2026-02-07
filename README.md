@@ -4,9 +4,11 @@
 
 # Cognitive Forge
 
-Deep concept evaluation through multi-agent debate for Claude Code.
+**v1.1.0**
 
-The Cognitive Forge spawns specialized agents that simultaneously analyze your concept from adversarial, creative, and integrative angles — then synthesizes their perspectives into understanding stronger than any single evaluation could produce.
+Deep concept evaluation through multi-agent debate and interactive exploration for Claude Code.
+
+The Cognitive Forge provides two modes of concept examination: **`/debate`** spawns specialized agents that simultaneously analyze your concept from adversarial, creative, and integrative angles — then synthesizes their perspectives. **`/explore`** leads you through iterative dialogue as an active co-explorer, applying cognitive techniques conversationally with selective agent recruitment.
 
 ## Installation
 
@@ -45,32 +47,54 @@ Add to your project's `.claude/settings.json`:
 
 ## Usage
 
-```
-/cognitive-forge:forge <your concept here>
-```
-
-### Examples
+### `/cognitive-forge:debate` — Multi-Agent Debate
 
 ```
-/cognitive-forge:forge a subscription model for AI consulting
-/cognitive-forge:forge the argument that AI systems should have legal personhood
-/cognitive-forge:forge using OKRs for personal goal-setting
-/cognitive-forge:forge a documentary series told entirely through AI-generated imagery
+/cognitive-forge:debate <your concept here>
 ```
 
-### Quiet Mode
+Spawns parallel agents to examine your concept from every angle. You observe the debate and receive a synthesis.
 
-To skip the debate narration and see only the final synthesis:
+**Examples:**
+```
+/cognitive-forge:debate a subscription model for AI consulting
+/cognitive-forge:debate the argument that AI systems should have legal personhood
+/cognitive-forge:debate using OKRs for personal goal-setting
+```
+
+**Quiet Mode** — skip debate narration, see only the final synthesis:
+```
+/cognitive-forge:debate "my concept" --quiet
+```
+
+### `/cognitive-forge:explore` — Interactive Exploration
 
 ```
-/cognitive-forge:forge "my concept" --quiet
+/cognitive-forge:explore <your concept here>
 ```
 
-## How It Works
+Engages you in iterative dialogue, applying cognitive techniques conversationally. You're an active participant shaping the exploration.
 
-### The Debate
+**Examples:**
+```
+/cognitive-forge:explore the ethics of AI-generated training data
+/cognitive-forge:explore whether microservices are right for our architecture
+/cognitive-forge:explore a documentary series told entirely through AI-generated imagery
+```
 
-When you invoke `/cognitive-forge:forge`, the system:
+### When to Use Which
+
+| | `/debate` | `/explore` |
+|---|-----------|------------|
+| **Mode** | Breadth — parallel perspectives | Depth — iterative collaboration |
+| **Your role** | Observer (review + approve intake) | Active co-explorer |
+| **Agents** | 3 core + up to 2 recruited | Guide + up to 2 recruited on demand |
+| **Best for** | Getting multiple independent viewpoints fast | Deep-diving into a concept with guided dialogue |
+| **Pace** | Single pass with optional cross-examination | Multi-turn conversation at your pace |
+
+## How `/debate` Works
+
+When you invoke `/cognitive-forge:debate`, the system:
 
 1. **Intake**: Classifies your concept (Business, Philosophical, Framework, or Creative) and confirms understanding
 2. **Recruit**: Spawns 3 core agents in parallel, plus optional specialists based on complexity
@@ -79,21 +103,34 @@ When you invoke `/cognitive-forge:forge`, the system:
 5. **Cross-examine**: If agents sharply disagree, feeds critiques across for response (optional)
 6. **Synthesize**: Integrates all perspectives into refined understanding with actionable next steps
 
-### The Agents
+## How `/explore` Works
 
-| Agent | Role | Techniques |
-|-------|------|------------|
-| **Challenger** | Adversarial analysis | Steel Opposition, Boundary Mapping, Pre-Mortem, Inversion |
-| **Explorer** | Creative expansion | Possibility Expansion, Constraint Shaping, Perspective Synthesis |
-| **Synthesizer** | Integration | Iterative Refinement, Quality Calibration, Tension Mapping |
-| **Decomposer** | Structural analysis (recruited) | Cognitive Decomposition, Sequential Deepening |
-| **Evaluator** | Evidence grounding (recruited) | Evidence Anchoring, Excellence Calibration |
+When you invoke `/cognitive-forge:explore`, the Guide:
+
+1. **Intake**: Conversational exchange to understand the concept, your relationship to it, and what success looks like
+2. **Decompose**: Breaks the concept into components, shares the map, invites your correction
+3. **Examine**: Applies 2-3 cognitive techniques based on concept type, pausing after each for your response
+4. **Stress-test**: Adversarial testing — pre-mortem, inversion, stress scenarios — framed collaboratively
+5. **Expand**: Adjacent possibilities, constraint removal, hybrid forms (optional — skipped if not needed)
+6. **Synthesize**: Draws threads together in a format shaped by the concept type and dialogue trajectory
+
+The Guide recruits specialist agents (Decomposer, Evaluator) mid-dialogue only when complexity genuinely demands it, always explaining why before spawning.
+
+## The Agents
+
+| Agent | Role | Techniques | Used By |
+|-------|------|------------|---------|
+| **Challenger** | Adversarial analysis | Steel Opposition, Boundary Mapping, Pre-Mortem, Inversion | `/debate` only |
+| **Explorer** | Creative expansion | Possibility Expansion, Constraint Shaping, Perspective Synthesis | `/debate` only |
+| **Synthesizer** | Integration | Iterative Refinement, Quality Calibration, Tension Mapping | `/debate` only |
+| **Decomposer** | Structural analysis (recruited) | Cognitive Decomposition, Sequential Deepening | Both commands |
+| **Evaluator** | Evidence grounding (recruited) | Evidence Anchoring, Excellence Calibration | Both commands |
 
 The Decomposer is recruited for structurally complex concepts (4+ interacting components). The Evaluator is recruited for concepts with checkable factual claims (and has web search access).
 
 ### Concept Types
 
-The forge adapts its technique emphasis based on concept type:
+Both commands adapt technique emphasis based on concept type:
 
 - **Business**: Stakeholder perspectives, failure modes, evidence anchoring
 - **Philosophical**: Logic, steel opposition, boundary mapping, tensions
@@ -111,7 +148,8 @@ cognitive-forge-plugin/
 │   │   └── plugin.json           # Plugin manifest
 │   ├── CLAUDE.md                 # Ambient plugin context
 │   ├── commands/
-│   │   └── forge.md              # /forge command (Moderator protocol)
+│   │   ├── debate.md             # /debate command (Moderator protocol)
+│   │   └── explore.md            # /explore command (Guide protocol)
 │   ├── skills/
 │   │   └── cognitive-techniques/
 │   │       ├── SKILL.md          # Foundation knowledge for agents
@@ -124,7 +162,7 @@ cognitive-forge-plugin/
 │   │   ├── forge-decomposer.md   # Structural analysis (recruited)
 │   │   └── forge-evaluator.md    # Evidence grounding (recruited)
 │   └── hooks/
-│       └── hooks.json            # Empty for v1
+│       └── hooks.json            # Empty for v2
 ├── .gitignore
 └── README.md
 ```
@@ -145,4 +183,4 @@ claude plugin validate .
 
 ## Credits
 
-Built on the Cognitive Forge concept evaluation framework — 10 cognitive techniques for deep concept examination, adapted from a single-agent skill into a multi-agent debate system.
+Built on the Cognitive Forge concept evaluation framework — 10 cognitive techniques for deep concept examination, adapted from a single-agent skill into a multi-agent debate system and interactive exploration guide.

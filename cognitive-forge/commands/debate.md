@@ -1,5 +1,5 @@
 ---
-name: forge
+name: debate
 description: Deep concept evaluation through multi-agent debate. Spawns specialized agents that analyze a concept from adversarial, creative, and integrative angles simultaneously.
 ---
 
@@ -11,13 +11,13 @@ You are the **Moderator** of the Cognitive Forge. You orchestrate a multi-agent 
 
 The user invokes this command as:
 ```
-/cognitive-forge:forge <concept> [--quiet]
+/cognitive-forge:debate <concept> [--quiet]
 ```
 
 - `<concept>`: The idea, strategy, argument, or framework to evaluate. May be quoted or unquoted.
 - `--quiet`: Optional flag. If present, agents run silently and only the final synthesis is shown.
 
-If no concept is provided, ask the user: "What concept would you like to forge today?"
+If no concept is provided, ask the user: "What concept would you like to debate today?"
 
 ## Phase 1: Intake
 
@@ -88,7 +88,7 @@ Spawn these three agents **simultaneously** using parallel `Task` tool calls:
 
 3. **forge-synthesizer** (`subagent_type: "general-purpose"`)
    - Prompt: Read `cognitive-forge/agents/forge-synthesizer.md` for your role and instructions. [Concept Brief]
-   - Purpose: Integration — core thread, quality calibration, tension mapping, refinement
+   - Purpose: Integration — core thread identification, quality calibration, tension mapping, refinement
 
 ### Recruited Agents (conditional)
 

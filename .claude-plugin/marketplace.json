@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "cognitive-forge-marketplace",
-  "description": "Multi-agent concept evaluation through structured cognitive debate.",
-  "version": "1.0.0",
+  "description": "Multi-agent concept evaluation through structured cognitive debate and interactive exploration.",
+  "version": "1.1.0",
   "owner": {
     "name": "Jeremy Brice"
   },
@@ -10,11 +10,11 @@
     {
       "name": "cognitive-forge",
       "source": "./cognitive-forge",
-      "description": "Deep concept evaluation through multi-agent debate. Spawns specialized agents (Challenger, Explorer, Synthesizer) to examine ideas from adversarial, creative, and integrative angles simultaneously.",
-      "version": "1.0.0",
+      "description": "Deep concept evaluation through multi-agent debate (/debate) and interactive guided exploration (/explore). Spawns specialized agents (Challenger, Explorer, Synthesizer) for parallel analysis, or leads iterative dialogue as the Guide with selective agent recruitment.",
+      "version": "1.1.0",
       "category": "reasoning",
-      "keywords": ["reasoning", "evaluation", "debate", "multi-agent", "concept-analysis"],
-      "tags": ["cognitive", "forge", "ideation", "strategy"]
+      "keywords": ["reasoning", "evaluation", "debate", "multi-agent", "concept-analysis", "explore", "dialogue"],
+      "tags": ["cognitive", "forge", "ideation", "strategy", "exploration"]
     }
   ]
 }

@@ -4,10 +4,5 @@
   "description": "Manage tasks, plan your day, and build up memory of important context about your work. Syncs with your calendar, email, and chat to keep everything organized and on track.",
   "author": {
     "name": "Jeremy Brice"
-  },
-  "dashboard": {
-    "path": "skills/dashboard.html",
-    "label": "Productivity",
-    "icon": "📋"
   }
 }

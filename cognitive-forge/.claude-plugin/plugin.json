@@ -4,10 +4,5 @@
   "version": "1.2.0",
   "author": {
     "name": "Jeremy Brice"
-  },
-  "dashboard": {
-    "path": "dashboard.html",
-    "label": "Cognitive Forge",
-    "icon": "🧠"
   }
 }

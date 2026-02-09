@@ -1,0 +1,2313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Forge Local Viewer</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   CSS Custom Properties & Theming
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --bg-hover: #f0f1f3;
+  --text-primary: #1a1a2e;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+  --border-color: #dee2e6;
+  --border-light: #e9ecef;
+  --accent: #4a6cf7;
+  --accent-hover: #3b5de7;
+  --accent-light: #eef0ff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --sidebar-width: 300px;
+  --toolbar-height: 48px;
+  --transition: 0.2s ease;
+  --status-draft: #e67e22;
+  --status-blue: #3498db;
+  --status-green: #27ae60;
+  --status-teal: #1abc9c;
+  --status-gray: #95a5a6;
+  --status-yellow: #f39c12;
+  --type-initiative: #8b5cf6;
+  --type-epic: #3b82f6;
+  --type-story: #10b981;
+  --type-intake: #f59e0b;
+  --type-checkpoint: #14b8a6;
+  --type-decision: #ef4444;
+  --type-release-note: #ec4899;
+}
+[data-theme="dark"] {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #252536;
+  --bg-tertiary: #2e2e42;
+  --bg-hover: #33334a;
+  --text-primary: #e0e0e8;
+  --text-secondary: #a0a0b0;
+  --text-muted: #6c6c80;
+  --border-color: #3a3a50;
+  --border-light: #2e2e42;
+  --accent: #6681ff;
+  --accent-hover: #5570ee;
+  --accent-light: #2a2a44;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: background var(--transition), color var(--transition);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button {
+  font-family: inherit; font-size: inherit; cursor: pointer;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background: var(--bg-secondary); color: var(--text-primary);
+  padding: 6px 12px; transition: all var(--transition);
+}
+button:hover { background: var(--bg-tertiary); }
+button.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+button.primary:hover { background: var(--accent-hover); }
+button.danger { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+button.danger:hover { background: #c0392b; }
+input, select, textarea {
+  font-family: inherit; font-size: inherit;
+  padding: 6px 10px; border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); background: var(--bg-primary);
+  color: var(--text-primary); transition: border-color var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,108,247,0.15);
+}
+textarea { resize: vertical; min-height: 200px; }
+.hidden { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-rows: var(--toolbar-height) 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100vh;
+}
+#app.sidebar-collapsed { grid-template-columns: 0px 1fr; }
+
+/* Toolbar */
+#toolbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10;
+}
+#toolbar .folder-path {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); color: var(--text-secondary);
+  font-size: 13px; max-width: 300px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+#toolbar .spacer { flex: 1; }
+#toolbar .refresh-indicator {
+  font-size: 12px; color: var(--text-muted);
+}
+#toolbar .btn-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: var(--radius-sm); font-size: 16px;
+}
+
+/* Sidebar */
+#sidebar {
+  grid-row: 2; grid-column: 1;
+  overflow-y: auto; overflow-x: hidden;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  transition: width var(--transition);
+}
+#app.sidebar-collapsed #sidebar { width: 0; overflow: hidden; border: none; }
+
+/* Detail Panel */
+#detail-panel {
+  grid-row: 2; grid-column: 2;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Tree View
+   ═══════════════════════════════════════════════════════════ */
+#tree-view { padding: 8px 0; }
+.tree-section { margin-bottom: 4px; }
+.tree-section-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; cursor: pointer;
+  font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-muted);
+  user-select: none;
+}
+.tree-section-header:hover { color: var(--text-secondary); background: var(--bg-hover); }
+.tree-section-header .toggle { width: 16px; font-size: 10px; transition: transform var(--transition); }
+.tree-section-header .toggle.open { transform: rotate(90deg); }
+.tree-section-header .count {
+  margin-left: auto; background: var(--bg-tertiary);
+  padding: 0 6px; border-radius: 10px; font-size: 11px;
+}
+.tree-children { overflow: hidden; }
+.tree-node-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+  user-select: none;
+}
+.tree-node-header:hover { background: var(--bg-hover); }
+.tree-node-header.selected { background: var(--accent-light); color: var(--accent); }
+.tree-node-header .toggle {
+  width: 16px; font-size: 10px; color: var(--text-muted);
+  flex-shrink: 0; text-align: center;
+  transition: transform var(--transition);
+}
+.tree-node-header .toggle.open { transform: rotate(90deg); }
+.tree-node-header .status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.tree-node-header .node-title {
+  flex: 1; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: 13px;
+}
+.tree-node-header .node-count {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--bg-tertiary); padding: 0 5px;
+  border-radius: 8px; flex-shrink: 0;
+}
+.tree-node-header .error-icon { color: #e67e22; flex-shrink: 0; }
+.tree-indent-1 .tree-node-header { padding-left: 28px; }
+.tree-indent-2 .tree-node-header { padding-left: 44px; }
+.tree-indent-3 .tree-node-header { padding-left: 60px; }
+
+/* Drag & Drop */
+.tree-node-header.drag-over-valid {
+  background: rgba(39,174,96,0.15); outline: 2px dashed var(--status-green);
+}
+.tree-node-header.drag-over-invalid {
+  background: rgba(231,76,60,0.1); outline: 2px dashed #e74c3c;
+}
+.tree-node-header.dragging { opacity: 0.4; }
+.tree-section-header.drag-over-valid {
+  background: rgba(39,174,96,0.15); outline: 2px dashed var(--status-green);
+}
+.tree-section-header.drag-over-invalid {
+  background: rgba(231,76,60,0.1); outline: 2px dashed #e74c3c;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Detail Panel Content
+   ═══════════════════════════════════════════════════════════ */
+#empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; color: var(--text-muted);
+  text-align: center; gap: 12px;
+}
+#empty-state .icon { font-size: 48px; opacity: 0.3; }
+#card-detail { max-width: 900px; }
+.card-type-badge {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 12px; font-size: 11px;
+  font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: #fff; margin-bottom: 8px;
+}
+.card-title-header {
+  font-size: 22px; font-weight: 700;
+  margin-bottom: 16px; line-height: 1.3;
+}
+.metadata-grid {
+  display: grid; grid-template-columns: 140px 1fr;
+  gap: 6px 16px; margin-bottom: 24px;
+  padding: 16px; background: var(--bg-secondary);
+  border-radius: var(--radius-md); border: 1px solid var(--border-light);
+}
+.metadata-grid .meta-label {
+  font-size: 12px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.3px; padding-top: 2px;
+}
+.metadata-grid .meta-value { color: var(--text-primary); font-size: 13px; }
+.status-pill {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 12px; font-size: 12px;
+  font-weight: 600; color: #fff;
+}
+.meta-link {
+  cursor: pointer; color: var(--accent);
+  text-decoration: none;
+}
+.meta-link:hover { text-decoration: underline; }
+.children-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.child-chip {
+  display: inline-block; padding: 2px 8px;
+  background: var(--bg-tertiary); border-radius: 12px;
+  font-size: 12px; cursor: pointer; transition: background var(--transition);
+}
+.child-chip:hover { background: var(--accent-light); color: var(--accent); }
+.card-body-rendered {
+  margin-bottom: 24px; line-height: 1.7;
+}
+.card-body-rendered h2 {
+  font-size: 18px; margin: 24px 0 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-light);
+}
+.card-body-rendered h3 { font-size: 15px; margin: 16px 0 6px; }
+.card-body-rendered p { margin: 8px 0; color: var(--text-secondary); }
+.card-body-rendered ul, .card-body-rendered ol {
+  margin: 8px 0; padding-left: 24px; color: var(--text-secondary);
+}
+.card-body-rendered li { margin: 4px 0; }
+.card-body-rendered strong { color: var(--text-primary); }
+.card-body-rendered code {
+  background: var(--bg-tertiary); padding: 1px 5px;
+  border-radius: 3px; font-size: 13px;
+}
+.card-body-rendered pre {
+  background: var(--bg-tertiary); padding: 12px;
+  border-radius: var(--radius-sm); overflow-x: auto;
+  margin: 8px 0;
+}
+.card-body-rendered pre code { background: none; padding: 0; }
+.card-body-rendered blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 8px 16px; margin: 8px 0;
+  color: var(--text-secondary); background: var(--bg-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.card-body-rendered hr {
+  border: none; border-top: 1px solid var(--border-color); margin: 16px 0;
+}
+.card-actions {
+  display: flex; gap: 8px; padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+.card-raw-content {
+  margin-top: 16px; padding: 16px;
+  background: var(--bg-tertiary); border-radius: var(--radius-sm);
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px; white-space: pre-wrap; word-break: break-all;
+  max-height: 500px; overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Modal
+   ═══════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5); display: flex;
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-content {
+  background: var(--bg-primary); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); width: 90%; max-width: 850px;
+  max-height: 90vh; display: flex; flex-direction: column;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; border-bottom: 1px solid var(--border-color);
+}
+.modal-header h2 { font-size: 18px; }
+.modal-close {
+  background: none; border: none; font-size: 20px;
+  color: var(--text-muted); padding: 4px 8px; cursor: pointer;
+}
+.modal-close:hover { color: var(--text-primary); }
+.modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.modal-footer {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding: 16px 24px; border-top: 1px solid var(--border-color);
+}
+.form-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 16px;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full-width { grid-column: 1 / -1; }
+.form-group label {
+  font-size: 12px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+}
+.form-group input, .form-group select, .form-group textarea { width: 100%; }
+
+/* Diff Preview */
+.diff-container {
+  margin-top: 16px; border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.diff-header {
+  padding: 8px 12px; background: var(--bg-tertiary);
+  font-weight: 600; font-size: 13px;
+  border-bottom: 1px solid var(--border-color);
+}
+.diff-body { font-family: monospace; font-size: 12px; }
+.diff-line { padding: 1px 12px; white-space: pre-wrap; }
+.diff-line.added { background: rgba(39,174,96,0.12); color: var(--status-green); }
+.diff-line.removed { background: rgba(231,76,60,0.12); color: #e74c3c; }
+.diff-line.same { color: var(--text-muted); }
+.diff-field { padding: 4px 12px; display: flex; gap: 8px; font-size: 13px; }
+.diff-field .field-name { font-weight: 600; min-width: 120px; }
+.diff-field .old-val { color: #e74c3c; text-decoration: line-through; }
+.diff-field .new-val { color: var(--status-green); }
+
+/* ═══════════════════════════════════════════════════════════
+   Confirm Dialog
+   ═══════════════════════════════════════════════════════════ */
+.confirm-content {
+  background: var(--bg-primary); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg); width: 90%; max-width: 500px;
+  padding: 24px;
+}
+.confirm-content h3 { margin-bottom: 12px; }
+.confirm-content p { color: var(--text-secondary); margin-bottom: 16px; }
+.confirm-details {
+  background: var(--bg-secondary); padding: 12px;
+  border-radius: var(--radius-sm); margin-bottom: 16px;
+  font-size: 13px; max-height: 200px; overflow-y: auto;
+}
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ═══════════════════════════════════════════════════════════
+   Welcome Screen & Browser Warning
+   ═══════════════════════════════════════════════════════════ */
+#browser-warning {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-primary);
+}
+.browser-warning-content {
+  text-align: center; max-width: 500px; padding: 40px;
+}
+.browser-warning-content .icon { font-size: 64px; margin-bottom: 16px; }
+.browser-warning-content h1 { margin-bottom: 12px; color: #e74c3c; }
+.browser-warning-content p { color: var(--text-secondary); margin-bottom: 16px; }
+#welcome-screen {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-primary);
+}
+.welcome-content { text-align: center; max-width: 480px; padding: 40px; }
+.welcome-content .logo { font-size: 56px; margin-bottom: 16px; }
+.welcome-content h1 { font-size: 28px; margin-bottom: 8px; }
+.welcome-content p { color: var(--text-secondary); margin-bottom: 24px; }
+.welcome-content .btn-select {
+  padding: 12px 32px; font-size: 16px; font-weight: 600;
+}
+.welcome-content .note {
+  margin-top: 16px; font-size: 12px; color: var(--text-muted);
+}
+.reconnect-banner {
+  padding: 8px 16px; background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: #856404;
+}
+[data-theme="dark"] .reconnect-banner {
+  background: #332b00; border-color: #665500; color: #ffc107;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Toast Notifications
+   ═══════════════════════════════════════════════════════════ */
+#toast-container {
+  position: fixed; bottom: 20px; right: 20px;
+  z-index: 200; display: flex; flex-direction: column-reverse; gap: 8px;
+}
+.toast {
+  padding: 10px 16px; border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md); font-size: 13px;
+  animation: toastIn 0.3s ease;
+  max-width: 360px;
+}
+.toast.info { background: #3498db; color: #fff; }
+.toast.success { background: #27ae60; color: #fff; }
+.toast.error { background: #e74c3c; color: #fff; }
+.toast.warning { background: #f39c12; color: #fff; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-color); border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  #app { grid-template-columns: 1fr; }
+  #sidebar {
+    position: fixed; left: 0; top: var(--toolbar-height);
+    bottom: 0; width: var(--sidebar-width); z-index: 20;
+    transform: translateX(-100%); transition: transform var(--transition);
+  }
+  #sidebar.mobile-open { transform: translateX(0); }
+  #detail-panel { grid-column: 1; padding: 16px; }
+}
+</style>
+</head>
+<body>
+<!-- Browser Warning (shown for unsupported browsers) -->
+<div id="browser-warning" class="hidden">
+  <div class="browser-warning-content">
+    <div class="icon">&#9888;</div>
+    <h1>Browser Not Supported</h1>
+    <p>Product Forge Local Viewer requires the File System Access API, which is only available in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> (version 86+).</p>
+    <p>Please open this file in a supported browser.</p>
+  </div>
+</div>
+
+<!-- Welcome Screen -->
+<div id="welcome-screen" class="hidden">
+  <div class="welcome-content">
+    <div class="logo">&#9878;</div>
+    <h1>Product Forge Local</h1>
+    <p>Visual dashboard for browsing, editing, and reorganizing PM cards stored as markdown files.</p>
+    <button class="primary btn-select" onclick="app.pickFolder()">Select Cards Folder</button>
+    <p class="note">Choose your <code>cards/</code> directory containing initiatives, epics, stories, and other card types.</p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" class="hidden">
+  <!-- Toolbar -->
+  <header id="toolbar">
+    <button class="btn-icon" onclick="app.toggleSidebar()" title="Toggle sidebar">&#9776;</button>
+    <div class="folder-path" id="folder-path" title="">&#128193; No folder selected</div>
+    <button onclick="app.pickFolder()">Change Folder</button>
+    <span class="spacer"></span>
+    <span class="refresh-indicator" id="refresh-indicator"></span>
+    <button class="btn-icon" onclick="app.manualRefresh()" title="Refresh now">&#8635;</button>
+    <button class="btn-icon" id="theme-toggle" onclick="app.toggleTheme()" title="Toggle theme">&#9789;</button>
+  </header>
+
+  <!-- Sidebar with Tree View -->
+  <aside id="sidebar">
+    <div id="tree-view"></div>
+  </aside>
+
+  <!-- Detail Panel -->
+  <main id="detail-panel">
+    <div id="empty-state">
+      <div class="icon">&#128196;</div>
+      <div>Select a card from the tree to view details</div>
+    </div>
+    <div id="card-detail" class="hidden"></div>
+  </main>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="edit-modal-title">Edit Card</h2>
+      <button class="modal-close" onclick="editModal.close()">&times;</button>
+    </div>
+    <div class="modal-body" id="edit-modal-body"></div>
+    <div class="modal-footer">
+      <button onclick="editModal.close()">Cancel</button>
+      <button onclick="editModal.toggleDiff()" id="btn-preview-diff">Preview Changes</button>
+      <button class="primary" onclick="editModal.save()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div id="confirm-dialog" class="modal-overlay hidden">
+  <div class="confirm-content">
+    <h3 id="confirm-title">Confirm Action</h3>
+    <p id="confirm-message"></p>
+    <div class="confirm-details" id="confirm-details"></div>
+    <div class="confirm-actions">
+      <button onclick="confirmDialog.resolve(false)">Cancel</button>
+      <button class="primary" onclick="confirmDialog.resolve(true)">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   YAML PARSER — Lightweight parser for frontmatter format
+   ═══════════════════════════════════════════════════════════════ */
+const YAML = {
+  parse(str) {
+    if (!str || !str.trim()) return {};
+    const result = {};
+    const lines = str.split('\n');
+    let currentKey = null;
+    let inArray = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+
+      // Array item (indented with -)
+      if (/^\s+- /.test(line) && inArray && currentKey) {
+        const val = trimmed.substring(2).trim();
+        result[currentKey].push(this._parseValue(val));
+        continue;
+      }
+
+      // End of array if we hit a non-indented, non-array line
+      if (inArray && !/^\s/.test(line)) inArray = false;
+
+      // Key-value pair
+      const colonIdx = line.indexOf(':');
+      if (colonIdx > 0 && /^[a-zA-Z_]/.test(line)) {
+        const key = line.substring(0, colonIdx).trim();
+        let value = line.substring(colonIdx + 1).trim();
+        currentKey = key;
+
+        if (value === '' || value === '~') {
+          // Check if next non-blank line is an array item
+          let next = i + 1;
+          while (next < lines.length && lines[next].trim() === '') next++;
+          if (next < lines.length && /^\s+- /.test(lines[next])) {
+            result[key] = [];
+            inArray = true;
+          } else {
+            result[key] = null;
+            inArray = false;
+          }
+        } else if (value === '[]') {
+          result[key] = [];
+          inArray = false;
+        } else {
+          result[key] = this._parseValue(value);
+          inArray = false;
+        }
+      }
+    }
+    return result;
+  },
+
+  _parseValue(v) {
+    // Strip inline comments (not inside quotes)
+    if (!v.startsWith('"') && !v.startsWith("'")) {
+      const ci = v.indexOf(' #');
+      if (ci > 0) v = v.substring(0, ci).trim();
+    }
+    if (v === 'null' || v === '~') return null;
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    // Quoted string
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      return v.slice(1, -1);
+    // Inline array
+    if (v.startsWith('[') && v.endsWith(']')) {
+      const inner = v.slice(1, -1).trim();
+      if (!inner) return [];
+      return inner.split(',').map(x => this._parseValue(x.trim()));
+    }
+    // Integer
+    if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+    // Float
+    if (/^-?\d+\.\d+$/.test(v)) return parseFloat(v);
+    // Date (keep as string)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    return v;
+  },
+
+  stringify(obj, type) {
+    const order = FIELD_ORDER[type] || Object.keys(obj);
+    const quotedFields = new Set(['title', 'description', 'stakeholders', 'version']);
+    const lines = [];
+    const written = new Set();
+
+    const writePair = (key, value) => {
+      written.add(key);
+      if (value === null || value === undefined) {
+        lines.push(`${key}: null`);
+      } else if (Array.isArray(value)) {
+        if (value.length === 0) {
+          lines.push(`${key}: []`);
+        } else {
+          lines.push(`${key}:`);
+          value.forEach(item => lines.push(`  - ${item}`));
+        }
+      } else if (typeof value === 'boolean') {
+        lines.push(`${key}: ${value}`);
+      } else if (typeof value === 'number') {
+        lines.push(`${key}: ${value}`);
+      } else {
+        const s = String(value);
+        if (quotedFields.has(key) || s.includes(': ') || s.includes(' #') || s === '') {
+          lines.push(`${key}: "${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+        } else {
+          lines.push(`${key}: ${s}`);
+        }
+      }
+    };
+
+    for (const key of order) {
+      if (key in obj) writePair(key, obj[key]);
+    }
+    // Any remaining fields not in canonical order
+    for (const key of Object.keys(obj)) {
+      if (!written.has(key)) writePair(key, obj[key]);
+    }
+    return lines.join('\n');
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   FIELD ORDER & SCHEMA DEFINITIONS
+   ═══════════════════════════════════════════════════════════════ */
+const FIELD_ORDER = {
+  initiative: ['title','type','status','product','module','client','team','confidence','estimate_hours','jira_card','source_intake','children','description','source_conversation','created','updated'],
+  epic: ['title','type','status','product','module','client','team','parent','children','description','source_intake','source_conversation','created','updated'],
+  story: ['title','type','status','product','module','client','team','parent','story_points','jira_card','source_conversation','created','updated'],
+  intake: ['title','type','status','product','module','client','generated_initiatives','generated_epics','source_conversation','created','updated'],
+  checkpoint: ['title','type','checkpoint_date','product','module','client','domain','status','source_conversation','created','updated'],
+  decision: ['title','type','decision_date','product','module','client','decision_type','status','stakeholders','source_conversation','created','updated'],
+  'release-note': ['title','type','release_date','product','status','version','related_stories','source_conversation','created','updated']
+};
+
+// Auto-discover taxonomy from loaded cards instead of hardcoding
+let discoveredTaxonomy = { products: [], modules: [], clients: [] };
+
+function discoverTaxonomy(cards) {
+  const products = new Set();
+  const modules = new Set();
+  const clients = new Set();
+
+  cards.forEach(card => {
+    if (card.frontmatter) {
+      if (card.frontmatter.product) products.add(card.frontmatter.product);
+      if (card.frontmatter.module) modules.add(card.frontmatter.module);
+      if (card.frontmatter.client) clients.add(card.frontmatter.client);
+    }
+  });
+
+  return {
+    products: [...products].sort(),
+    modules: [...modules].sort(),
+    clients: [...clients].sort()
+  };
+}
+
+const STATUS_OPTIONS = {
+  initiative: ['Draft','Submitted','Approved','Superseded'],
+  epic: ['Planning','In Progress','Complete','Cancelled'],
+  story: ['Draft','Ready','In Progress','Done'],
+  intake: ['Draft','Complete','Handed Off'],
+  checkpoint: ['Current','Superseded','Archived'],
+  decision: ['Active','Revised','Reversed'],
+  'release-note': ['Draft','Published','Internal Only']
+};
+
+const CONFIDENCE_OPTIONS = ['High','Medium','Low'];
+const DOMAIN_OPTIONS = ['Integration','Operations','Configuration','Reporting','Mobile','Feature Scope','Architecture','Requirements','Technical Spec','Stakeholder Context'];
+const DECISION_TYPE_OPTIONS = ['Architecture','Scope','Priority','Technical','Stakeholder Commitment'];
+
+/* ═══════════════════════════════════════════════════════════════
+   MARKDOWN RENDERER
+   ═══════════════════════════════════════════════════════════════ */
+const MD = {
+  render(src) {
+    if (!src) return '';
+    const lines = src.split('\n');
+    const blocks = this._parseBlocks(lines);
+    return blocks.map(b => this._renderBlock(b)).join('\n');
+  },
+
+  _parseBlocks(lines) {
+    const blocks = [];
+    let cur = null;
+    const push = () => { if (cur) { blocks.push(cur); cur = null; } };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Inside code block
+      if (cur && cur.type === 'code') {
+        if (line.trim().startsWith('```')) { push(); }
+        else cur.lines.push(line);
+        continue;
+      }
+
+      // Code block start
+      if (line.trim().startsWith('```')) {
+        push();
+        cur = { type: 'code', lang: line.trim().slice(3).trim(), lines: [] };
+        continue;
+      }
+
+      // Heading
+      const hm = line.match(/^(#{1,6})\s+(.+)$/);
+      if (hm) { push(); blocks.push({ type: 'heading', level: hm[1].length, text: hm[2] }); continue; }
+
+      // HR
+      if (/^(\s*[-*_]){3,}\s*$/.test(line)) { push(); blocks.push({ type: 'hr' }); continue; }
+
+      // Blockquote
+      const bq = line.match(/^>\s?(.*)$/);
+      if (bq) {
+        if (!cur || cur.type !== 'blockquote') { push(); cur = { type: 'blockquote', lines: [] }; }
+        cur.lines.push(bq[1]);
+        continue;
+      }
+
+      // Unordered list
+      const ul = line.match(/^(\s*)([-*+])\s+(.+)$/);
+      if (ul) {
+        if (!cur || cur.type !== 'ul') { push(); cur = { type: 'ul', items: [] }; }
+        cur.items.push(ul[3]);
+        continue;
+      }
+
+      // Ordered list
+      const ol = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+      if (ol) {
+        if (!cur || cur.type !== 'ol') { push(); cur = { type: 'ol', items: [] }; }
+        cur.items.push(ol[3]);
+        continue;
+      }
+
+      // Blank line
+      if (!line.trim()) { push(); continue; }
+
+      // Paragraph
+      if (!cur || cur.type !== 'paragraph') { push(); cur = { type: 'paragraph', lines: [] }; }
+      cur.lines.push(line);
+    }
+    push();
+    return blocks;
+  },
+
+  _renderBlock(b) {
+    switch (b.type) {
+      case 'heading': return `<h${b.level}>${this._inline(b.text)}</h${b.level}>`;
+      case 'paragraph': return `<p>${b.lines.map(l => this._inline(l)).join(' ')}</p>`;
+      case 'ul': return `<ul>${b.items.map(i => `<li>${this._inline(i)}</li>`).join('')}</ul>`;
+      case 'ol': return `<ol>${b.items.map(i => `<li>${this._inline(i)}</li>`).join('')}</ol>`;
+      case 'hr': return '<hr>';
+      case 'blockquote': return `<blockquote>${b.lines.map(l => `<p>${this._inline(l)}</p>`).join('')}</blockquote>`;
+      case 'code': {
+        const esc = b.lines.join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return `<pre><code>${esc}</code></pre>`;
+      }
+      default: return '';
+    }
+  },
+
+  _inline(t) {
+    t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    t = t.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+    t = t.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>');
+    t = t.replace(/`(.+?)`/g, '<code>$1</code>');
+    t = t.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return t;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   DIFF ENGINE
+   ═══════════════════════════════════════════════════════════════ */
+function computeLineDiff(oldText, newText) {
+  const oldLines = (oldText || '').split('\n');
+  const newLines = (newText || '').split('\n');
+  const m = oldLines.length, n = newLines.length;
+
+  // LCS DP (fine for small files)
+  const dp = Array.from({ length: m + 1 }, () => new Uint16Array(n + 1));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = oldLines[i-1] === newLines[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+  const result = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldLines[i-1] === newLines[j-1]) {
+      result.unshift({ type: 'same', text: oldLines[i-1] }); i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) {
+      result.unshift({ type: 'added', text: newLines[j-1] }); j--;
+    } else {
+      result.unshift({ type: 'removed', text: oldLines[i-1] }); i--;
+    }
+  }
+  return result;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY FUNCTIONS
+   ═══════════════════════════════════════════════════════════════ */
+function escapeHTML(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function getStatusColor(status) {
+  if (!status) return 'var(--text-muted)';
+  const s = status.toLowerCase();
+  const map = {
+    'draft': 'var(--status-draft)', 'submitted': 'var(--status-blue)',
+    'approved': 'var(--status-green)', 'planning': 'var(--status-blue)',
+    'in progress': 'var(--status-blue)', 'ready': 'var(--status-teal)',
+    'complete': 'var(--status-green)', 'done': 'var(--status-green)',
+    'current': 'var(--status-green)', 'active': 'var(--status-green)',
+    'cancelled': 'var(--status-gray)', 'superseded': 'var(--status-gray)',
+    'archived': 'var(--status-gray)', 'reversed': 'var(--status-gray)',
+    'revised': 'var(--status-gray)', 'published': 'var(--status-green)',
+    'internal only': 'var(--status-yellow)', 'handed off': 'var(--status-green)',
+  };
+  return map[s] || 'var(--text-muted)';
+}
+
+function getTypeColor(type) {
+  const map = {
+    'initiative': 'var(--type-initiative)', 'epic': 'var(--type-epic)',
+    'story': 'var(--type-story)', 'intake': 'var(--type-intake)',
+    'checkpoint': 'var(--type-checkpoint)', 'decision': 'var(--type-decision)',
+    'release-note': 'var(--type-release-note)'
+  };
+  return map[type] || 'var(--text-muted)';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FILE SYSTEM MANAGER
+   ═══════════════════════════════════════════════════════════════ */
+class FileSystemManager {
+  constructor() {
+    this.dirHandle = null;
+    this.dbName = 'ProductForgeViewer';
+    this.storeName = 'handles';
+  }
+
+  async openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(this.dbName, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(this.storeName);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async saveHandle(handle) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, 'readwrite');
+      tx.objectStore(this.storeName).put(handle, 'cardsDir');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async loadHandle() {
+    try {
+      const db = await this.openDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readonly');
+        const req = tx.objectStore(this.storeName).get('cardsDir');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch { return null; }
+  }
+
+  async pickDirectory() {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    this.dirHandle = handle;
+    await this.saveHandle(handle);
+    return handle;
+  }
+
+  async requestPermission(handle) {
+    const opts = { mode: 'readwrite' };
+    if (await handle.queryPermission(opts) === 'granted') return true;
+    if (await handle.requestPermission(opts) === 'granted') return true;
+    return false;
+  }
+
+  async scanFiles() {
+    if (!this.dirHandle) return new Map();
+    const files = new Map();
+    const expectedDirs = ['initiatives','epics','stories','intakes','checkpoints','decisions','release-notes'];
+    const foundDirs = [];
+
+    try {
+      for await (const entry of this.dirHandle.values()) {
+        if (entry.kind !== 'directory') continue;
+        foundDirs.push(entry.name);
+        if (!expectedDirs.includes(entry.name)) continue;
+
+        try {
+          for await (const fileEntry of entry.values()) {
+            if (fileEntry.kind !== 'file' || !fileEntry.name.endsWith('.md')) continue;
+            const filename = fileEntry.name.replace(/\.md$/, '');
+            try {
+              const file = await fileEntry.getFile();
+              files.set(filename, {
+                handle: fileEntry,
+                dirName: entry.name,
+                fileName: fileEntry.name,
+                lastModified: file.lastModified,
+                content: await file.text()
+              });
+            } catch (e) {
+              console.warn(`Failed to read ${fileEntry.name}:`, e);
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to scan directory ${entry.name}:`, e);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to scan root directory:', e);
+    }
+
+    // Check for missing expected directories
+    const missing = expectedDirs.filter(d => !foundDirs.includes(d));
+    if (missing.length > 0 && foundDirs.length > 0) {
+      toast.show(`Missing subdirectories: ${missing.join(', ')}`, 'warning');
+    }
+
+    return files;
+  }
+
+  async writeFile(fileHandle, content) {
+    const writable = await fileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD PARSER & WRITER
+   ═══════════════════════════════════════════════════════════════ */
+const CardParser = {
+  parse(filename, content, dirName) {
+    const card = { filename, dirName, raw: content, error: null, frontmatter: {}, body: '' };
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+    if (!match) {
+      card.error = 'No valid frontmatter found';
+      card.body = content;
+      return card;
+    }
+    try {
+      card.frontmatter = YAML.parse(match[1]);
+      card.body = (match[2] || '').trim();
+      if (!card.frontmatter.type) {
+        card.frontmatter.type = this._inferType(dirName);
+      }
+    } catch (e) {
+      card.error = `YAML parse error: ${e.message}`;
+      card.body = content;
+    }
+    return card;
+  },
+
+  _inferType(dirName) {
+    const map = {
+      'initiatives': 'initiative', 'epics': 'epic', 'stories': 'story',
+      'intakes': 'intake', 'checkpoints': 'checkpoint',
+      'decisions': 'decision', 'release-notes': 'release-note'
+    };
+    return map[dirName] || 'unknown';
+  },
+
+  serialize(frontmatter, body) {
+    const type = frontmatter.type || 'unknown';
+    const yaml = YAML.stringify(frontmatter, type);
+    return `---\n${yaml}\n---\n\n${body}\n`;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD STORE
+   ═══════════════════════════════════════════════════════════════ */
+class CardStore {
+  constructor() {
+    this.cards = new Map();       // filename -> card
+    this.timestamps = new Map();  // filename -> lastModified
+    this.fileHandles = new Map(); // filename -> FileSystemFileHandle
+  }
+
+  clear() { this.cards.clear(); this.timestamps.clear(); this.fileHandles.clear(); }
+
+  set(filename, card, timestamp, handle) {
+    this.cards.set(filename, card);
+    this.timestamps.set(filename, timestamp);
+    if (handle) this.fileHandles.set(filename, handle);
+  }
+
+  get(filename) { return this.cards.get(filename) || null; }
+  delete(filename) { this.cards.delete(filename); this.timestamps.delete(filename); this.fileHandles.delete(filename); }
+
+  getByType(type) {
+    return [...this.cards.values()].filter(c => c.frontmatter.type === type);
+  }
+
+  getChildren(parentFilename) {
+    return [...this.cards.values()].filter(c => c.frontmatter.parent === parentFilename);
+  }
+
+  all() { return [...this.cards.values()]; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HIERARCHY GRAPH
+   ═══════════════════════════════════════════════════════════════ */
+function buildHierarchy(store) {
+  const initiatives = store.getByType('initiative');
+  const epics = store.getByType('epic');
+  const stories = store.getByType('story');
+  const placedEpics = new Set();
+  const placedStories = new Set();
+
+  const tree = initiatives.map(init => {
+    // Find epics for this initiative (by parent field or children array)
+    const childEpics = epics.filter(e =>
+      e.frontmatter.parent === init.filename ||
+      (Array.isArray(init.frontmatter.children) && init.frontmatter.children.includes(e.filename))
+    );
+    childEpics.forEach(e => placedEpics.add(e.filename));
+
+    const epicNodes = childEpics.map(epic => {
+      const childStories = stories.filter(s =>
+        s.frontmatter.parent === epic.filename ||
+        (Array.isArray(epic.frontmatter.children) && epic.frontmatter.children.includes(s.filename))
+      );
+      childStories.forEach(s => placedStories.add(s.filename));
+      return { card: epic, children: childStories };
+    });
+
+    return { card: init, children: epicNodes };
+  });
+
+  // Build orphan epic nodes with their child stories
+  const rawOrphanEpics = epics.filter(e => !placedEpics.has(e.filename));
+  const orphanEpicNodes = rawOrphanEpics.map(epic => {
+    const childStories = stories.filter(s =>
+      s.frontmatter.parent === epic.filename ||
+      (Array.isArray(epic.frontmatter.children) && epic.frontmatter.children.includes(s.filename))
+    );
+    childStories.forEach(s => placedStories.add(s.filename));
+    return { card: epic, children: childStories };
+  });
+  const orphanStories = stories.filter(s => !placedStories.has(s.filename));
+
+  return {
+    tree,
+    orphanEpics: orphanEpicNodes,
+    orphanStories,
+    intakes: store.getByType('intake'),
+    checkpoints: store.getByType('checkpoint'),
+    decisions: store.getByType('decision'),
+    releaseNotes: store.getByType('release-note')
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AUTO REFRESH SERVICE
+   ═══════════════════════════════════════════════════════════════ */
+class AutoRefreshService {
+  constructor(fs, store, onChange) {
+    this.fs = fs;
+    this.store = store;
+    this.onChange = onChange;
+    this.interval = null;
+    this.running = false;
+  }
+
+  start(ms = 5000) {
+    if (this.interval) return;
+    this.interval = setInterval(() => this.refresh(), ms);
+  }
+
+  stop() {
+    if (this.interval) { clearInterval(this.interval); this.interval = null; }
+  }
+
+  async refresh() {
+    if (this.running || !this.fs.dirHandle) return;
+    this.running = true;
+    try {
+      const files = await this.fs.scanFiles();
+      const changes = { added: [], modified: [], deleted: [] };
+
+      // Detect added/modified
+      for (const [filename, fileData] of files) {
+        const oldTs = this.store.timestamps.get(filename);
+        if (oldTs === undefined) {
+          changes.added.push(filename);
+        } else if (fileData.lastModified !== oldTs) {
+          changes.modified.push(filename);
+        }
+        const card = CardParser.parse(filename, fileData.content, fileData.dirName);
+        this.store.set(filename, card, fileData.lastModified, fileData.handle);
+      }
+
+      // Detect deleted
+      for (const filename of this.store.cards.keys()) {
+        if (!files.has(filename)) {
+          changes.deleted.push(filename);
+          this.store.delete(filename);
+        }
+      }
+
+      const hasChanges = changes.added.length + changes.modified.length + changes.deleted.length > 0;
+      if (hasChanges) this.onChange(changes);
+
+      return hasChanges;
+    } catch (e) {
+      console.warn('Refresh error:', e);
+    } finally {
+      this.running = false;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST MANAGER
+   ═══════════════════════════════════════════════════════════════ */
+const toast = {
+  show(message, type = 'info', duration = 3500) {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, duration);
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   CONFIRM DIALOG
+   ═══════════════════════════════════════════════════════════════ */
+const confirmDialog = {
+  _resolve: null,
+  show(title, message, details = '') {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    document.getElementById('confirm-details').innerHTML = details;
+    document.getElementById('confirm-dialog').classList.remove('hidden');
+    return new Promise(r => { this._resolve = r; });
+  },
+  resolve(val) {
+    document.getElementById('confirm-dialog').classList.add('hidden');
+    if (this._resolve) { this._resolve(val); this._resolve = null; }
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   TREE VIEW
+   ═══════════════════════════════════════════════════════════════ */
+const treeView = {
+  collapsedSections: new Set(),
+  collapsedNodes: new Set(),
+
+  render(hierarchy) {
+    const container = document.getElementById('tree-view');
+    let html = '';
+
+    // Main hierarchy: Initiatives -> Epics -> Stories
+    html += this._renderSection('Initiatives', 'initiatives', hierarchy.tree.length, () => {
+      let inner = '';
+      for (const initNode of hierarchy.tree) {
+        inner += this._renderInitiativeNode(initNode);
+      }
+      return inner;
+    });
+
+    // Orphan epics (always visible as unparent drop target)
+    html += this._renderSection('Orphan Epics', 'orphan-epics', hierarchy.orphanEpics.length, () =>
+      hierarchy.orphanEpics.map(epicNode => this._renderEpicNode(epicNode)).join('')
+    , 'unparent-epic');
+
+    // Orphan stories (always visible as unparent drop target)
+    html += this._renderSection('Orphan Stories', 'orphan-stories', hierarchy.orphanStories.length, () =>
+      hierarchy.orphanStories.map(c => this._renderStoryNode(c, 1)).join('')
+    , 'unparent-story');
+
+    // Flat sections
+    html += this._renderSection('Intakes', 'intakes', hierarchy.intakes.length, () =>
+      hierarchy.intakes.map(c => this._renderLeafNode(c, 1)).join('')
+    );
+    html += this._renderSection('Checkpoints', 'checkpoints', hierarchy.checkpoints.length, () =>
+      hierarchy.checkpoints.map(c => this._renderLeafNode(c, 1)).join('')
+    );
+    html += this._renderSection('Decisions', 'decisions', hierarchy.decisions.length, () =>
+      hierarchy.decisions.map(c => this._renderLeafNode(c, 1)).join('')
+    );
+    html += this._renderSection('Release Notes', 'release-notes', hierarchy.releaseNotes.length, () =>
+      hierarchy.releaseNotes.map(c => this._renderLeafNode(c, 1)).join('')
+    );
+
+    container.innerHTML = html;
+    this._bindEvents(container);
+    this._setupDragDrop(container);
+  },
+
+  _renderSection(label, id, count, contentFn, dropTarget = null) {
+    const collapsed = this.collapsedSections.has(id);
+    const dropAttr = dropTarget ? ` data-drop-target="${dropTarget}"` : '';
+    return `<div class="tree-section" data-section="${id}">
+      <div class="tree-section-header" data-toggle-section="${id}"${dropAttr}>
+        <span class="toggle ${collapsed ? '' : 'open'}">&#9654;</span>
+        <span>${escapeHTML(label)}</span>
+        <span class="count">${count}</span>
+      </div>
+      <div class="tree-children ${collapsed ? 'hidden' : ''}" data-section-body="${id}">${contentFn()}</div>
+    </div>`;
+  },
+
+  _renderInitiativeNode(initNode) {
+    const card = initNode.card;
+    const fm = card.frontmatter;
+    const collapsed = this.collapsedNodes.has(card.filename);
+    const hasChildren = initNode.children.length > 0;
+    const errorAttr = card.error ? ` data-error="1"` : '';
+
+    let html = `<div class="tree-node tree-indent-0" data-filename="${escapeHTML(card.filename)}" data-type="initiative"${errorAttr}>
+      <div class="tree-node-header" data-select="${escapeHTML(card.filename)}" data-toggle="${escapeHTML(card.filename)}">
+        ${hasChildren ? `<span class="toggle ${collapsed ? '' : 'open'}">&#9654;</span>` : '<span class="toggle"></span>'}
+        <span class="status-dot" style="background:${getStatusColor(fm.status)}"></span>
+        ${card.error ? '<span class="error-icon">&#9888;</span>' : ''}
+        <span class="node-title">${escapeHTML(fm.title || card.filename)}</span>
+        ${hasChildren ? `<span class="node-count">${initNode.children.length}</span>` : ''}
+      </div>`;
+
+    if (hasChildren) {
+      html += `<div class="tree-children ${collapsed ? 'hidden' : ''}" data-children="${escapeHTML(card.filename)}">`;
+      for (const epicNode of initNode.children) {
+        html += this._renderEpicNode(epicNode);
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  },
+
+  _renderEpicNode(epicNode) {
+    const card = epicNode.card;
+    const fm = card.frontmatter;
+    const collapsed = this.collapsedNodes.has(card.filename);
+    const hasChildren = epicNode.children.length > 0;
+    const errorAttr = card.error ? ` data-error="1"` : '';
+
+    let html = `<div class="tree-node tree-indent-1" data-filename="${escapeHTML(card.filename)}" data-type="epic"${errorAttr}>
+      <div class="tree-node-header" draggable="true" data-drag-type="epic" data-drag-filename="${escapeHTML(card.filename)}" data-select="${escapeHTML(card.filename)}" data-toggle="${escapeHTML(card.filename)}" data-drop-target="initiative">
+        ${hasChildren ? `<span class="toggle ${collapsed ? '' : 'open'}">&#9654;</span>` : '<span class="toggle"></span>'}
+        <span class="status-dot" style="background:${getStatusColor(fm.status)}"></span>
+        ${card.error ? '<span class="error-icon">&#9888;</span>' : ''}
+        <span class="node-title">${escapeHTML(fm.title || card.filename)}</span>
+        ${hasChildren ? `<span class="node-count">${epicNode.children.length}</span>` : ''}
+      </div>`;
+
+    if (hasChildren) {
+      html += `<div class="tree-children ${collapsed ? 'hidden' : ''}" data-children="${escapeHTML(card.filename)}">`;
+      for (const storyCard of epicNode.children) {
+        html += this._renderStoryNode(storyCard);
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  },
+
+  _renderStoryNode(card, indent = 2) {
+    const fm = card.frontmatter;
+    const errorAttr = card.error ? ` data-error="1"` : '';
+    return `<div class="tree-node tree-indent-${indent}" data-filename="${escapeHTML(card.filename)}" data-type="story"${errorAttr}>
+      <div class="tree-node-header" draggable="true" data-drag-type="story" data-drag-filename="${escapeHTML(card.filename)}" data-select="${escapeHTML(card.filename)}" data-drop-target="epic">
+        <span class="toggle"></span>
+        <span class="status-dot" style="background:${getStatusColor(fm.status)}"></span>
+        ${card.error ? '<span class="error-icon">&#9888;</span>' : ''}
+        <span class="node-title">${escapeHTML(fm.title || card.filename)}</span>
+      </div>
+    </div>`;
+  },
+
+  _renderLeafNode(card, indent) {
+    const fm = card.frontmatter;
+    const errorAttr = card.error ? ` data-error="1"` : '';
+    return `<div class="tree-node tree-indent-${indent}" data-filename="${escapeHTML(card.filename)}" data-type="${escapeHTML(fm.type || 'unknown')}"${errorAttr}>
+      <div class="tree-node-header" data-select="${escapeHTML(card.filename)}">
+        <span class="toggle"></span>
+        <span class="status-dot" style="background:${getStatusColor(fm.status)}"></span>
+        ${card.error ? '<span class="error-icon">&#9888;</span>' : ''}
+        <span class="node-title">${escapeHTML(fm.title || card.filename)}</span>
+      </div>
+    </div>`;
+  },
+
+  _bindEvents(container) {
+    // Section toggle
+    container.querySelectorAll('[data-toggle-section]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.toggleSection;
+        const body = container.querySelector(`[data-section-body="${id}"]`);
+        const toggle = el.querySelector('.toggle');
+        if (this.collapsedSections.has(id)) {
+          this.collapsedSections.delete(id);
+          body.classList.remove('hidden');
+          toggle.classList.add('open');
+        } else {
+          this.collapsedSections.add(id);
+          body.classList.add('hidden');
+          toggle.classList.remove('open');
+        }
+      });
+    });
+
+    // Node toggle & select
+    container.querySelectorAll('[data-select]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const filename = el.dataset.select;
+        const toggleEl = el.dataset.toggle;
+
+        // If clicking the toggle arrow specifically, just toggle collapse
+        if (e.target.classList.contains('toggle') && toggleEl) {
+          const children = container.querySelector(`[data-children="${toggleEl}"]`);
+          const arrow = el.querySelector('.toggle');
+          if (children) {
+            if (this.collapsedNodes.has(toggleEl)) {
+              this.collapsedNodes.delete(toggleEl);
+              children.classList.remove('hidden');
+              arrow.classList.add('open');
+            } else {
+              this.collapsedNodes.add(toggleEl);
+              children.classList.add('hidden');
+              arrow.classList.remove('open');
+            }
+          }
+          return;
+        }
+
+        // Select this card
+        app.selectCard(filename);
+      });
+    });
+  },
+
+  highlightSelected(filename) {
+    document.querySelectorAll('.tree-node-header.selected').forEach(el => el.classList.remove('selected'));
+    if (filename) {
+      const el = document.querySelector(`[data-select="${filename}"]`);
+      if (el) el.classList.add('selected');
+    }
+  },
+
+  _setupDragDrop(container) {
+    let draggedType = null;
+    let draggedFilename = null;
+
+    container.addEventListener('dragstart', (e) => {
+      const header = e.target.closest('[data-drag-type]');
+      if (!header) return;
+      draggedType = header.dataset.dragType;
+      draggedFilename = header.dataset.dragFilename;
+      header.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', draggedFilename);
+    });
+
+    container.addEventListener('dragend', (e) => {
+      const header = e.target.closest('[data-drag-type]');
+      if (header) header.classList.remove('dragging');
+      container.querySelectorAll('.drag-over-valid,.drag-over-invalid').forEach(el => {
+        el.classList.remove('drag-over-valid', 'drag-over-invalid');
+      });
+      draggedType = null;
+      draggedFilename = null;
+    });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+
+    container.addEventListener('dragenter', (e) => {
+      if (!draggedType || !draggedFilename) return;
+
+      // Remove previous highlights
+      container.querySelectorAll('.drag-over-valid,.drag-over-invalid').forEach(el => {
+        el.classList.remove('drag-over-valid', 'drag-over-invalid');
+      });
+
+      // Check section header drop targets first (for unparenting)
+      const sectionHeader = e.target.closest('.tree-section-header[data-drop-target]');
+      if (sectionHeader) {
+        if (this._isValidDrop(draggedType, sectionHeader.dataset.dropTarget, draggedFilename, null)) {
+          sectionHeader.classList.add('drag-over-valid');
+        } else {
+          sectionHeader.classList.add('drag-over-invalid');
+        }
+        return;
+      }
+
+      // Check tree node header targets (for reparenting)
+      const target = e.target.closest('.tree-node-header');
+      if (!target) return;
+      const targetNode = target.closest('.tree-node');
+      if (!targetNode) return;
+      const targetType = targetNode.dataset.type;
+      const targetFilename = targetNode.dataset.filename;
+
+      if (this._isValidDrop(draggedType, targetType, draggedFilename, targetFilename)) {
+        target.classList.add('drag-over-valid');
+      } else {
+        target.classList.add('drag-over-invalid');
+      }
+    });
+
+    container.addEventListener('dragleave', (e) => {
+      const sectionHeader = e.target.closest('.tree-section-header[data-drop-target]');
+      if (sectionHeader) {
+        sectionHeader.classList.remove('drag-over-valid', 'drag-over-invalid');
+        return;
+      }
+      const target = e.target.closest('.tree-node-header');
+      if (target) target.classList.remove('drag-over-valid', 'drag-over-invalid');
+    });
+
+    container.addEventListener('drop', async (e) => {
+      e.preventDefault();
+
+      // Check section header drop targets first (for unparenting)
+      const sectionHeader = e.target.closest('.tree-section-header[data-drop-target]');
+      if (sectionHeader) {
+        sectionHeader.classList.remove('drag-over-valid', 'drag-over-invalid');
+        if (!this._isValidDrop(draggedType, sectionHeader.dataset.dropTarget, draggedFilename, null)) {
+          toast.show('Invalid drop target', 'error');
+          return;
+        }
+        await app.unparentCard(draggedFilename);
+        return;
+      }
+
+      // Check tree node header targets (for reparenting)
+      const target = e.target.closest('.tree-node-header');
+      if (!target) return;
+      const targetNode = target.closest('.tree-node');
+      if (!targetNode) return;
+
+      target.classList.remove('drag-over-valid', 'drag-over-invalid');
+
+      const targetType = targetNode.dataset.type;
+      const targetFilename = targetNode.dataset.filename;
+
+      if (!this._isValidDrop(draggedType, targetType, draggedFilename, targetFilename)) {
+        toast.show('Invalid drop target', 'error');
+        return;
+      }
+
+      await app.reparentCard(draggedFilename, targetFilename);
+    });
+  },
+
+  _isValidDrop(dragType, targetType, dragFilename, targetFilename) {
+    if (dragFilename === targetFilename) return false;
+    if (dragType === 'story' && targetType === 'epic') {
+      const card = app.store.get(dragFilename);
+      return card && card.frontmatter.parent !== targetFilename;
+    }
+    if (dragType === 'epic' && targetType === 'initiative') {
+      const card = app.store.get(dragFilename);
+      return card && card.frontmatter.parent !== targetFilename;
+    }
+    if (dragType === 'epic' && targetType === 'unparent-epic') {
+      const card = app.store.get(dragFilename);
+      return card && !!card.frontmatter.parent;
+    }
+    if (dragType === 'story' && targetType === 'unparent-story') {
+      const card = app.store.get(dragFilename);
+      return card && !!card.frontmatter.parent;
+    }
+    return false;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   DETAIL PANEL
+   ═══════════════════════════════════════════════════════════════ */
+const detailPanel = {
+  showingRaw: false,
+
+  renderCard(card) {
+    if (!card) {
+      document.getElementById('card-detail').classList.add('hidden');
+      document.getElementById('empty-state').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('empty-state').classList.add('hidden');
+    const el = document.getElementById('card-detail');
+    el.classList.remove('hidden');
+    this.showingRaw = false;
+
+    const fm = card.frontmatter;
+    const type = fm.type || 'unknown';
+
+    let html = '';
+
+    // Type badge + title
+    html += `<span class="card-type-badge" style="background:${getTypeColor(type)}">${escapeHTML(type)}</span>`;
+    if (card.error) {
+      html += `<div style="color:#e67e22;margin-bottom:12px;font-size:13px">&#9888; ${escapeHTML(card.error)}</div>`;
+    }
+    html += `<div class="card-title-header">${escapeHTML(fm.title || card.filename)}</div>`;
+
+    // Metadata grid
+    html += '<div class="metadata-grid">';
+    html += this._metaRow('Status', fm.status ? `<span class="status-pill" style="background:${getStatusColor(fm.status)}">${escapeHTML(fm.status)}</span>` : '—');
+    html += this._metaRow('Filename', `<code>${escapeHTML(card.filename)}.md</code>`);
+
+    if (fm.product) html += this._metaRow('Product', escapeHTML(fm.product));
+    if (fm.module) html += this._metaRow('Module', escapeHTML(fm.module));
+    if (fm.client) html += this._metaRow('Client', escapeHTML(fm.client));
+    if (fm.team) html += this._metaRow('Team', escapeHTML(fm.team));
+
+    // Type-specific fields
+    if (fm.confidence) html += this._metaRow('Confidence', escapeHTML(fm.confidence));
+    if (fm.estimate_hours !== null && fm.estimate_hours !== undefined) html += this._metaRow('Est. Hours', fm.estimate_hours);
+    if (fm.story_points !== null && fm.story_points !== undefined) html += this._metaRow('Story Points', fm.story_points);
+    if (fm.jira_card) html += this._metaRow('Jira Card', escapeHTML(fm.jira_card));
+    if (fm.domain) html += this._metaRow('Domain', escapeHTML(fm.domain));
+    if (fm.decision_type) html += this._metaRow('Decision Type', escapeHTML(fm.decision_type));
+    if (fm.stakeholders) html += this._metaRow('Stakeholders', escapeHTML(fm.stakeholders));
+    if (fm.version) html += this._metaRow('Version', escapeHTML(fm.version));
+    if (fm.checkpoint_date) html += this._metaRow('Checkpoint Date', escapeHTML(fm.checkpoint_date));
+    if (fm.decision_date) html += this._metaRow('Decision Date', escapeHTML(fm.decision_date));
+    if (fm.release_date) html += this._metaRow('Release Date', escapeHTML(fm.release_date));
+
+    // Parent link
+    if (fm.parent) {
+      const parentCard = app.store.get(fm.parent);
+      const parentLabel = parentCard ? (parentCard.frontmatter.title || fm.parent) : fm.parent;
+      html += this._metaRow('Parent', `<span class="meta-link" onclick="app.selectCard('${escapeHTML(fm.parent)}')">${escapeHTML(parentLabel)}</span>`);
+    }
+
+    // Children links
+    if (Array.isArray(fm.children) && fm.children.length > 0) {
+      const chips = fm.children.map(c => {
+        const child = app.store.get(c);
+        const label = child ? (child.frontmatter.title || c) : c;
+        return `<span class="child-chip" onclick="app.selectCard('${escapeHTML(c)}')">${escapeHTML(label)}</span>`;
+      }).join('');
+      html += this._metaRow('Children', `<div class="children-list">${chips}</div>`);
+    }
+
+    // Source intake
+    if (fm.source_intake) html += this._metaRow('Source Intake', `<span class="meta-link" onclick="app.selectCard('${escapeHTML(fm.source_intake)}')">${escapeHTML(fm.source_intake)}</span>`);
+
+    // Generated cards
+    if (Array.isArray(fm.generated_initiatives) && fm.generated_initiatives.length > 0) {
+      const chips = fm.generated_initiatives.map(c => `<span class="child-chip" onclick="app.selectCard('${escapeHTML(c)}')">${escapeHTML(c)}</span>`).join('');
+      html += this._metaRow('Gen. Initiatives', `<div class="children-list">${chips}</div>`);
+    }
+    if (Array.isArray(fm.generated_epics) && fm.generated_epics.length > 0) {
+      const chips = fm.generated_epics.map(c => `<span class="child-chip" onclick="app.selectCard('${escapeHTML(c)}')">${escapeHTML(c)}</span>`).join('');
+      html += this._metaRow('Gen. Epics', `<div class="children-list">${chips}</div>`);
+    }
+    if (Array.isArray(fm.related_stories) && fm.related_stories.length > 0) {
+      const chips = fm.related_stories.map(c => `<span class="child-chip" onclick="app.selectCard('${escapeHTML(c)}')">${escapeHTML(c)}</span>`).join('');
+      html += this._metaRow('Related Stories', `<div class="children-list">${chips}</div>`);
+    }
+
+    // Description
+    if (fm.description) html += this._metaRow('Description', `<em>${escapeHTML(fm.description)}</em>`);
+
+    // Dates
+    if (fm.created) html += this._metaRow('Created', escapeHTML(fm.created));
+    if (fm.updated) html += this._metaRow('Updated', escapeHTML(fm.updated));
+
+    html += '</div>';
+
+    // Rendered body
+    if (card.body) {
+      html += `<div class="card-body-rendered">${MD.render(card.body)}</div>`;
+    }
+
+    // Action buttons
+    html += `<div class="card-actions">
+      <button class="primary" onclick="editModal.open('${escapeHTML(card.filename)}')">Edit Card</button>
+      <button onclick="detailPanel.toggleRaw('${escapeHTML(card.filename)}')">View Raw</button>
+      <button onclick="detailPanel.copyFilename('${escapeHTML(card.filename)}')">Copy Filename</button>
+    </div>`;
+
+    // Raw content (hidden by default)
+    html += `<div id="raw-content" class="card-raw-content hidden">${escapeHTML(card.raw)}</div>`;
+
+    el.innerHTML = html;
+    el.scrollTop = 0;
+  },
+
+  _metaRow(label, value) {
+    return `<div class="meta-label">${escapeHTML(label)}</div><div class="meta-value">${value}</div>`;
+  },
+
+  toggleRaw(filename) {
+    const raw = document.getElementById('raw-content');
+    if (raw) {
+      this.showingRaw = !this.showingRaw;
+      raw.classList.toggle('hidden', !this.showingRaw);
+    }
+  },
+
+  copyFilename(filename) {
+    navigator.clipboard.writeText(filename + '.md').then(
+      () => toast.show('Filename copied to clipboard', 'success'),
+      () => toast.show('Failed to copy filename', 'error')
+    );
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   EDIT MODAL
+   ═══════════════════════════════════════════════════════════════ */
+const editModal = {
+  currentFilename: null,
+  originalCard: null,
+  showingDiff: false,
+
+  open(filename) {
+    const card = app.store.get(filename);
+    if (!card) return;
+    this.currentFilename = filename;
+    this.originalCard = card;
+    this.showingDiff = false;
+
+    document.getElementById('edit-modal-title').textContent = `Edit: ${card.frontmatter.title || filename}`;
+    document.getElementById('btn-preview-diff').textContent = 'Preview Changes';
+
+    const body = document.getElementById('edit-modal-body');
+    const fm = card.frontmatter;
+    const type = fm.type || 'unknown';
+
+    let html = '<div class="form-grid">';
+    html += this._buildField('title', 'Title', 'text', fm.title, { required: true, fullWidth: true });
+
+    // Status
+    const statuses = STATUS_OPTIONS[type] || [];
+    if (statuses.length > 0) html += this._buildField('status', 'Status', 'select', fm.status, { options: statuses });
+
+    // Common taxonomy fields
+    html += this._buildField('product', 'Product', 'select', fm.product, { options: discoveredTaxonomy.products });
+    html += this._buildField('module', 'Module', 'select', fm.module, { options: discoveredTaxonomy.modules });
+    html += this._buildField('client', 'Client', 'select', fm.client, { options: discoveredTaxonomy.clients });
+
+    // Type-specific fields
+    if (type === 'initiative' || type === 'epic' || type === 'story') {
+      html += this._buildField('team', 'Team', 'text', fm.team);
+    }
+
+    if (type === 'initiative') {
+      html += this._buildField('confidence', 'Confidence', 'select', fm.confidence, { options: CONFIDENCE_OPTIONS });
+      html += this._buildField('estimate_hours', 'Est. Hours', 'number', fm.estimate_hours);
+      html += this._buildField('jira_card', 'Jira Card', 'text', fm.jira_card);
+      html += this._buildField('source_intake', 'Source Intake', 'text', fm.source_intake);
+    }
+
+    if (type === 'epic') {
+      const initiatives = app.store.getByType('initiative');
+      const parentOpts = initiatives.map(c => c.filename);
+      html += this._buildField('parent', 'Parent Initiative', 'select', fm.parent, { options: parentOpts, labels: initiatives.map(c => c.frontmatter.title || c.filename) });
+      html += this._buildField('source_intake', 'Source Intake', 'text', fm.source_intake);
+    }
+
+    if (type === 'story') {
+      const epics = app.store.getByType('epic');
+      const parentOpts = epics.map(c => c.filename);
+      html += this._buildField('parent', 'Parent Epic', 'select', fm.parent, { options: parentOpts, labels: epics.map(c => c.frontmatter.title || c.filename) });
+      html += this._buildField('story_points', 'Story Points', 'number', fm.story_points);
+      html += this._buildField('jira_card', 'Jira Card', 'text', fm.jira_card);
+    }
+
+    if (type === 'checkpoint') {
+      html += this._buildField('checkpoint_date', 'Date', 'date', fm.checkpoint_date);
+      html += this._buildField('domain', 'Domain', 'select', fm.domain, { options: DOMAIN_OPTIONS });
+    }
+
+    if (type === 'decision') {
+      html += this._buildField('decision_date', 'Date', 'date', fm.decision_date);
+      html += this._buildField('decision_type', 'Decision Type', 'select', fm.decision_type, { options: DECISION_TYPE_OPTIONS });
+      html += this._buildField('stakeholders', 'Stakeholders', 'text', fm.stakeholders);
+    }
+
+    if (type === 'release-note') {
+      html += this._buildField('release_date', 'Release Date', 'date', fm.release_date);
+      html += this._buildField('version', 'Version', 'text', fm.version);
+    }
+
+    // Description field (if present in schema)
+    if ('description' in fm || ['initiative','epic'].includes(type)) {
+      html += this._buildField('description', 'Description', 'text', fm.description, { fullWidth: true });
+    }
+
+    html += '</div>';
+
+    // Body textarea
+    html += `<div class="form-group full-width">
+      <label>Body (Markdown)</label>
+      <textarea id="edit-body" style="min-height:300px;font-family:monospace;font-size:13px">${escapeHTML(card.body)}</textarea>
+    </div>`;
+
+    // Diff container (hidden)
+    html += '<div id="diff-container" class="hidden"></div>';
+
+    body.innerHTML = html;
+    document.getElementById('edit-modal').classList.remove('hidden');
+  },
+
+  _buildField(key, label, type, value, opts = {}) {
+    const fullWidth = opts.fullWidth ? ' full-width' : '';
+    let input = '';
+
+    if (type === 'select') {
+      const options = opts.options || [];
+      const labels = opts.labels || options;
+      input = `<select id="edit-${key}" data-field="${key}">
+        <option value="">— None —</option>
+        ${options.map((o, i) => `<option value="${escapeHTML(o)}" ${o === value ? 'selected' : ''}>${escapeHTML(labels[i] || o)}</option>`).join('')}
+      </select>`;
+    } else if (type === 'number') {
+      input = `<input type="number" id="edit-${key}" data-field="${key}" value="${value !== null && value !== undefined ? value : ''}">`;
+    } else if (type === 'date') {
+      input = `<input type="date" id="edit-${key}" data-field="${key}" value="${value || ''}">`;
+    } else {
+      input = `<input type="text" id="edit-${key}" data-field="${key}" value="${escapeHTML(value || '')}">`;
+    }
+
+    return `<div class="form-group${fullWidth}"><label>${escapeHTML(label)}</label>${input}</div>`;
+  },
+
+  _getFormData() {
+    const fm = { ...this.originalCard.frontmatter };
+    const type = fm.type;
+
+    // Collect all form fields
+    document.querySelectorAll('#edit-modal-body [data-field]').forEach(el => {
+      const key = el.dataset.field;
+      let val = el.value.trim();
+
+      if (el.type === 'number') {
+        fm[key] = val === '' ? null : Number(val);
+      } else {
+        fm[key] = val === '' ? null : val;
+      }
+    });
+
+    // Auto-update the updated date
+    fm.updated = todayISO();
+
+    const body = document.getElementById('edit-body').value;
+    return { frontmatter: fm, body };
+  },
+
+  toggleDiff() {
+    const container = document.getElementById('diff-container');
+    this.showingDiff = !this.showingDiff;
+    document.getElementById('btn-preview-diff').textContent = this.showingDiff ? 'Hide Preview' : 'Preview Changes';
+
+    if (!this.showingDiff) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    const { frontmatter: newFm, body: newBody } = this._getFormData();
+    const oldFm = this.originalCard.frontmatter;
+    const oldBody = this.originalCard.body;
+    let html = '';
+
+    // Frontmatter diff
+    const fieldChanges = [];
+    const allKeys = new Set([...Object.keys(oldFm), ...Object.keys(newFm)]);
+    for (const key of allKeys) {
+      if (key === 'updated') continue; // Skip auto-updated field
+      const oldVal = JSON.stringify(oldFm[key] ?? null);
+      const newVal = JSON.stringify(newFm[key] ?? null);
+      if (oldVal !== newVal) {
+        fieldChanges.push({ key, old: oldFm[key], new: newFm[key] });
+      }
+    }
+
+    if (fieldChanges.length > 0) {
+      html += '<div class="diff-container"><div class="diff-header">Frontmatter Changes</div><div class="diff-body">';
+      for (const ch of fieldChanges) {
+        const oldStr = ch.old === null ? 'null' : Array.isArray(ch.old) ? ch.old.join(', ') : String(ch.old);
+        const newStr = ch.new === null ? 'null' : Array.isArray(ch.new) ? ch.new.join(', ') : String(ch.new);
+        html += `<div class="diff-field">
+          <span class="field-name">${escapeHTML(ch.key)}</span>
+          <span class="old-val">${escapeHTML(oldStr)}</span>
+          <span>&rarr;</span>
+          <span class="new-val">${escapeHTML(newStr)}</span>
+        </div>`;
+      }
+      html += '</div></div>';
+    }
+
+    // Body diff
+    if (oldBody !== newBody) {
+      const diff = computeLineDiff(oldBody, newBody);
+      const hasRealChanges = diff.some(d => d.type !== 'same');
+      if (hasRealChanges) {
+        html += '<div class="diff-container" style="margin-top:12px"><div class="diff-header">Body Changes</div><div class="diff-body">';
+        for (const line of diff) {
+          const prefix = line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
+          html += `<div class="diff-line ${line.type}">${prefix} ${escapeHTML(line.text)}</div>`;
+        }
+        html += '</div></div>';
+      }
+    }
+
+    if (!html) {
+      html = '<div style="padding:16px;color:var(--text-muted);text-align:center">No changes detected</div>';
+    }
+
+    container.innerHTML = html;
+    container.classList.remove('hidden');
+  },
+
+  async save() {
+    if (!this.currentFilename || !this.originalCard) return;
+
+    const { frontmatter, body } = this._getFormData();
+    const content = CardParser.serialize(frontmatter, body);
+    const handle = app.store.fileHandles.get(this.currentFilename);
+
+    if (!handle) {
+      toast.show('Cannot find file handle for writing', 'error');
+      return;
+    }
+
+    try {
+      await app.fs.writeFile(handle, content);
+
+      // Update store
+      const card = CardParser.parse(this.currentFilename, content, this.originalCard.dirName);
+      app.store.set(this.currentFilename, card, Date.now(), handle);
+
+      // Re-render
+      app.renderTree();
+      if (app.selectedCard === this.currentFilename) {
+        detailPanel.renderCard(card);
+      }
+
+      this.close();
+      toast.show('Card saved successfully', 'success');
+    } catch (e) {
+      toast.show(`Save failed: ${e.message}`, 'error');
+    }
+  },
+
+  close() {
+    document.getElementById('edit-modal').classList.add('hidden');
+    this.currentFilename = null;
+    this.originalCard = null;
+    this.showingDiff = false;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   APP CONTROLLER
+   ═══════════════════════════════════════════════════════════════ */
+const app = {
+  fs: new FileSystemManager(),
+  store: new CardStore(),
+  refreshService: null,
+  selectedCard: null,
+  sidebarCollapsed: false,
+
+  async init() {
+    // Browser check
+    if (!('showDirectoryPicker' in window)) {
+      document.getElementById('browser-warning').classList.remove('hidden');
+      return;
+    }
+
+    // Apply saved theme
+    const savedTheme = localStorage.getItem('pf-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    this._updateThemeIcon();
+
+    // Try to restore saved directory handle
+    const savedHandle = await this.fs.loadHandle();
+    if (savedHandle) {
+      try {
+        const granted = await this.fs.requestPermission(savedHandle);
+        if (granted) {
+          this.fs.dirHandle = savedHandle;
+          await this.loadCards();
+          this._showApp();
+          return;
+        }
+      } catch (e) {
+        console.warn('Could not restore handle:', e);
+      }
+    }
+
+    // Show welcome screen
+    document.getElementById('welcome-screen').classList.remove('hidden');
+  },
+
+  async pickFolder() {
+    try {
+      await this.fs.pickDirectory();
+      document.getElementById('welcome-screen').classList.add('hidden');
+      await this.loadCards();
+      this._showApp();
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        toast.show(`Error selecting folder: ${e.message}`, 'error');
+      }
+    }
+  },
+
+  async loadCards() {
+    this.store.clear();
+    const files = await this.fs.scanFiles();
+
+    for (const [filename, fileData] of files) {
+      const card = CardParser.parse(filename, fileData.content, fileData.dirName);
+      this.store.set(filename, card, fileData.lastModified, fileData.handle);
+    }
+
+    // Rebuild taxonomy from loaded card frontmatter
+    discoveredTaxonomy = discoverTaxonomy([...this.store.cards.values()]);
+
+    this.renderTree();
+    this._updateFolderPath();
+    this._updateRefreshIndicator();
+
+    // Start auto-refresh
+    if (this.refreshService) this.refreshService.stop();
+    this.refreshService = new AutoRefreshService(this.fs, this.store, (changes) => {
+      discoveredTaxonomy = discoverTaxonomy([...this.store.cards.values()]);
+      this.renderTree();
+      if (this.selectedCard) {
+        const card = this.store.get(this.selectedCard);
+        if (card) {
+          if (changes.modified.includes(this.selectedCard)) detailPanel.renderCard(card);
+        } else {
+          this.selectedCard = null;
+          detailPanel.renderCard(null);
+        }
+      }
+      this._updateRefreshIndicator();
+    });
+    this.refreshService.start(5000);
+
+    // Render selected card if still exists
+    if (this.selectedCard) {
+      const card = this.store.get(this.selectedCard);
+      if (card) {
+        detailPanel.renderCard(card);
+        treeView.highlightSelected(this.selectedCard);
+      } else {
+        this.selectedCard = null;
+        detailPanel.renderCard(null);
+      }
+    }
+  },
+
+  renderTree() {
+    const hierarchy = buildHierarchy(this.store);
+    treeView.render(hierarchy);
+    if (this.selectedCard) treeView.highlightSelected(this.selectedCard);
+  },
+
+  selectCard(filename) {
+    this.selectedCard = filename;
+    const card = this.store.get(filename);
+    detailPanel.renderCard(card);
+    treeView.highlightSelected(filename);
+  },
+
+  async reparentCard(cardFilename, newParentFilename) {
+    const card = this.store.get(cardFilename);
+    const newParent = this.store.get(newParentFilename);
+    if (!card || !newParent) return;
+
+    const oldParentFilename = card.frontmatter.parent;
+    const oldParent = oldParentFilename ? this.store.get(oldParentFilename) : null;
+
+    // Build change description
+    let details = `<strong>Moving:</strong> ${escapeHTML(card.frontmatter.title || cardFilename)}<br>`;
+    if (oldParent) details += `<strong>From:</strong> ${escapeHTML(oldParent.frontmatter.title || oldParentFilename)}<br>`;
+    details += `<strong>To:</strong> ${escapeHTML(newParent.frontmatter.title || newParentFilename)}<br><br>`;
+    details += '<strong>Files to update:</strong><br>';
+    details += `- ${cardFilename}.md (parent field)<br>`;
+    if (oldParent) details += `- ${oldParentFilename}.md (remove from children)<br>`;
+    details += `- ${newParentFilename}.md (add to children)`;
+
+    const confirmed = await confirmDialog.show('Reparent Card', 'This will update the following files:', details);
+    if (!confirmed) return;
+
+    try {
+      const today = todayISO();
+
+      // 1. Update the card's parent
+      card.frontmatter.parent = newParentFilename;
+      card.frontmatter.updated = today;
+      const cardContent = CardParser.serialize(card.frontmatter, card.body);
+      const cardHandle = this.store.fileHandles.get(cardFilename);
+      if (cardHandle) await this.fs.writeFile(cardHandle, cardContent);
+
+      // 2. Remove from old parent's children
+      if (oldParent) {
+        if (Array.isArray(oldParent.frontmatter.children)) {
+          oldParent.frontmatter.children = oldParent.frontmatter.children.filter(c => c !== cardFilename);
+        }
+        oldParent.frontmatter.updated = today;
+        const oldContent = CardParser.serialize(oldParent.frontmatter, oldParent.body);
+        const oldHandle = this.store.fileHandles.get(oldParentFilename);
+        if (oldHandle) await this.fs.writeFile(oldHandle, oldContent);
+      }
+
+      // 3. Add to new parent's children
+      if (!Array.isArray(newParent.frontmatter.children)) {
+        newParent.frontmatter.children = [];
+      }
+      if (!newParent.frontmatter.children.includes(cardFilename)) {
+        newParent.frontmatter.children.push(cardFilename);
+      }
+      newParent.frontmatter.updated = today;
+      const newContent = CardParser.serialize(newParent.frontmatter, newParent.body);
+      const newHandle = this.store.fileHandles.get(newParentFilename);
+      if (newHandle) await this.fs.writeFile(newHandle, newContent);
+
+      // Update store with re-parsed cards
+      [cardFilename, oldParentFilename, newParentFilename].forEach(fn => {
+        if (!fn) return;
+        const c = this.store.get(fn);
+        if (c) {
+          const reparsed = CardParser.parse(fn, CardParser.serialize(c.frontmatter, c.body), c.dirName);
+          this.store.set(fn, reparsed, Date.now(), this.store.fileHandles.get(fn));
+        }
+      });
+
+      this.renderTree();
+      if (this.selectedCard) {
+        const selected = this.store.get(this.selectedCard);
+        if (selected) detailPanel.renderCard(selected);
+      }
+
+      toast.show('Card reparented successfully', 'success');
+    } catch (e) {
+      toast.show(`Reparent failed: ${e.message}`, 'error');
+    }
+  },
+
+  async unparentCard(cardFilename) {
+    const card = this.store.get(cardFilename);
+    if (!card) return;
+
+    const oldParentFilename = card.frontmatter.parent;
+    if (!oldParentFilename) return;
+    const oldParent = this.store.get(oldParentFilename);
+
+    // Build change description
+    let details = `<strong>Unparenting:</strong> ${escapeHTML(card.frontmatter.title || cardFilename)}<br>`;
+    if (oldParent) details += `<strong>From:</strong> ${escapeHTML(oldParent.frontmatter.title || oldParentFilename)}<br>`;
+    details += '<br><strong>Files to update:</strong><br>';
+    details += `- ${cardFilename}.md (remove parent field)<br>`;
+    if (oldParent) details += `- ${oldParentFilename}.md (remove from children)`;
+
+    const confirmed = await confirmDialog.show('Unparent Card', 'This will update the following files:', details);
+    if (!confirmed) return;
+
+    try {
+      const today = todayISO();
+
+      // 1. Remove the card's parent
+      card.frontmatter.parent = null;
+      card.frontmatter.updated = today;
+      const cardContent = CardParser.serialize(card.frontmatter, card.body);
+      const cardHandle = this.store.fileHandles.get(cardFilename);
+      if (cardHandle) await this.fs.writeFile(cardHandle, cardContent);
+
+      // 2. Remove from old parent's children
+      if (oldParent) {
+        if (Array.isArray(oldParent.frontmatter.children)) {
+          oldParent.frontmatter.children = oldParent.frontmatter.children.filter(c => c !== cardFilename);
+        }
+        oldParent.frontmatter.updated = today;
+        const oldContent = CardParser.serialize(oldParent.frontmatter, oldParent.body);
+        const oldHandle = this.store.fileHandles.get(oldParentFilename);
+        if (oldHandle) await this.fs.writeFile(oldHandle, oldContent);
+      }
+
+      // Update store with re-parsed cards
+      [cardFilename, oldParentFilename].forEach(fn => {
+        if (!fn) return;
+        const c = this.store.get(fn);
+        if (c) {
+          const reparsed = CardParser.parse(fn, CardParser.serialize(c.frontmatter, c.body), c.dirName);
+          this.store.set(fn, reparsed, Date.now(), this.store.fileHandles.get(fn));
+        }
+      });
+
+      this.renderTree();
+      if (this.selectedCard) {
+        const selected = this.store.get(this.selectedCard);
+        if (selected) detailPanel.renderCard(selected);
+      }
+
+      toast.show('Card unparented successfully', 'success');
+    } catch (e) {
+      toast.show(`Unparent failed: ${e.message}`, 'error');
+    }
+  },
+
+  async manualRefresh() {
+    if (this.refreshService) {
+      const changed = await this.refreshService.refresh();
+      if (!changed) toast.show('No changes detected', 'info');
+    }
+    this._updateRefreshIndicator();
+  },
+
+  toggleSidebar() {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+    document.getElementById('app').classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
+    // Mobile
+    document.getElementById('sidebar').classList.toggle('mobile-open', !this.sidebarCollapsed);
+  },
+
+  toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('pf-theme', next);
+    this._updateThemeIcon();
+  },
+
+  _updateThemeIcon() {
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    document.getElementById('theme-toggle').innerHTML = theme === 'light' ? '&#9789;' : '&#9788;';
+  },
+
+  _showApp() {
+    document.getElementById('welcome-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+  },
+
+  _updateFolderPath() {
+    const el = document.getElementById('folder-path');
+    if (this.fs.dirHandle) {
+      el.innerHTML = `&#128193; ${escapeHTML(this.fs.dirHandle.name)}/`;
+      el.title = this.fs.dirHandle.name;
+    }
+  },
+
+  _updateRefreshIndicator() {
+    const el = document.getElementById('refresh-indicator');
+    const count = this.store.cards.size;
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.textContent = `${count} cards \u00B7 ${time}`;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   KEYBOARD NAVIGATION
+   ═══════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', (e) => {
+  // Escape closes modals
+  if (e.key === 'Escape') {
+    if (!document.getElementById('edit-modal').classList.contains('hidden')) {
+      editModal.close();
+      return;
+    }
+    if (!document.getElementById('confirm-dialog').classList.contains('hidden')) {
+      confirmDialog.resolve(false);
+      return;
+    }
+  }
+
+  // Don't handle keys when typing in inputs
+  if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+
+  // E to edit
+  if (e.key === 'e' && app.selectedCard) {
+    editModal.open(app.selectedCard);
+    return;
+  }
+
+  // Arrow navigation in tree
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const headers = [...document.querySelectorAll('.tree-node-header[data-select]')];
+    if (headers.length === 0) return;
+    const currentIdx = headers.findIndex(h => h.dataset.select === app.selectedCard);
+    let nextIdx;
+    if (e.key === 'ArrowDown') {
+      nextIdx = currentIdx < headers.length - 1 ? currentIdx + 1 : 0;
+    } else {
+      nextIdx = currentIdx > 0 ? currentIdx - 1 : headers.length - 1;
+    }
+    const nextFilename = headers[nextIdx].dataset.select;
+    app.selectCard(nextFilename);
+    headers[nextIdx].scrollIntoView({ block: 'nearest' });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   INITIALIZE
+   ═══════════════════════════════════════════════════════════════ */
+app.init();
+
+// Forge Shell theme sync — listen for theme broadcasts from parent shell
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'forge-shell:theme') {
+    const theme = e.data.theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('pf-theme', theme);
+    app.updateThemeIcon();
+  }
+});
+</script>
+</body>
+</html>

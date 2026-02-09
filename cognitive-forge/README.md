@@ -98,13 +98,50 @@ Both commands adapt technique emphasis based on concept type:
 - **Framework**: Structural integrity, edge cases, comparative analysis
 - **Creative**: Possibility expansion, excellence calibration, constraint shaping
 
+## Key Constraints
+
+- Both commands are explicit invocation only — never auto-detect or auto-trigger
+- Subagents cannot spawn other subagents
+- The main Claude session acts as Moderator (debate) or Guide (explore), spawning agents via the `Task` tool
+
+## Session Persistence
+
+Both `/debate` and `/explore` automatically save completed sessions to local markdown files with YAML frontmatter.
+
+### Directory Structure
+
+```
+cognitive-forge/
+  sessions/
+    debates/         ← Debate session records
+    explorations/    ← Exploration session records
+```
+
+### Filename Convention
+
+`{YYYY-MM-DD}-{concept-slug}.md`
+
+- Date is the session date
+- Slug is the concept title lowercased, spaces replaced by hyphens, non-alphanumeric characters removed
+
+### Frontmatter Schemas
+
+**Debate sessions:** `title`, `type` (debate), `category`, `concept`, `agents` (array), `cross_examination` (bool), `status`, `created`
+
+**Exploration sessions:** `title`, `type` (explore), `category`, `concept`, `relationship`, `agents_recruited` (array), `techniques_applied` (array), `status`, `created`
+
+## Dashboard
+
+The Cognitive Forge dashboard (`dashboard.html`) is a single-file HTML viewer for browsing saved debate and exploration sessions. It uses the File System Access API to read from the `sessions/` directory.
+
+Register in Forge Shell via: `/shell:add cognitive-forge`
+
 ## Architecture
 
 ```
 cognitive-forge/
 ├── .claude-plugin/
 │   └── plugin.json           # Plugin manifest
-├── CLAUDE.md                 # Ambient plugin context
 ├── commands/
 │   ├── debate.md             # /debate command (Moderator protocol)
 │   └── explore.md            # /explore command (Guide protocol)

@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognitive Forge Dashboard</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   CSS Custom Properties & Theming
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e9ecef;
+  --bg-hover: #f0f1f3;
+  --text-primary: #1a1a2e;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+  --border-color: #dee2e6;
+  --border-light: #e9ecef;
+  --accent: #4a6cf7;
+  --accent-hover: #3b5de7;
+  --accent-light: #eef0ff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --sidebar-width: 300px;
+  --toolbar-height: 48px;
+  --transition: 0.2s ease;
+  --type-debate: #e74c3c;
+  --type-explore: #27ae60;
+  --cat-business: #3498db;
+  --cat-philosophical: #8b5cf6;
+  --cat-framework: #f59e0b;
+  --cat-creative: #ec4899;
+  --status-complete: #27ae60;
+  --status-partial: #e67e22;
+}
+[data-theme="dark"] {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #252536;
+  --bg-tertiary: #2e2e42;
+  --bg-hover: #33334a;
+  --text-primary: #e0e0e8;
+  --text-secondary: #a0a0b0;
+  --text-muted: #6c6c80;
+  --border-color: #3a3a50;
+  --border-light: #2e2e42;
+  --accent: #6681ff;
+  --accent-hover: #5570ee;
+  --accent-light: #2a2a44;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Base Styles
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: background var(--transition), color var(--transition);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button {
+  font-family: inherit; font-size: inherit; cursor: pointer;
+  border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+  background: var(--bg-secondary); color: var(--text-primary);
+  padding: 6px 12px; transition: all var(--transition);
+}
+button:hover { background: var(--bg-tertiary); }
+button.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+button.primary:hover { background: var(--accent-hover); }
+.hidden { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-rows: var(--toolbar-height) 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100vh;
+}
+#app.sidebar-collapsed { grid-template-columns: 0px 1fr; }
+
+/* Toolbar */
+#toolbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 10;
+}
+#toolbar .folder-path {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); color: var(--text-secondary);
+  font-size: 13px; max-width: 300px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+#toolbar .spacer { flex: 1; }
+#toolbar .refresh-indicator {
+  font-size: 12px; color: var(--text-muted);
+}
+#toolbar .btn-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: var(--radius-sm); font-size: 16px;
+}
+
+/* Sidebar */
+#sidebar {
+  grid-row: 2; grid-column: 1;
+  overflow-y: auto; overflow-x: hidden;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  transition: width var(--transition);
+  display: flex; flex-direction: column;
+}
+#app.sidebar-collapsed #sidebar { width: 0; overflow: hidden; border: none; }
+
+/* Filter Bar */
+#filter-bar {
+  display: flex; gap: 4px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+.filter-btn {
+  flex: 1; padding: 4px 8px; font-size: 12px;
+  font-weight: 600; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary); color: var(--text-secondary);
+  text-align: center; cursor: pointer;
+  transition: all var(--transition);
+}
+.filter-btn:hover { background: var(--bg-hover); }
+.filter-btn.active {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent);
+}
+
+/* Session List */
+#session-list {
+  flex: 1; overflow-y: auto; padding: 4px 0;
+}
+.session-item {
+  display: flex; align-items: stretch; gap: 0;
+  padding: 0; margin: 2px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer; transition: background var(--transition);
+  border: 1px solid transparent;
+  overflow: hidden;
+}
+.session-item:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.session-item.selected { background: var(--accent-light); border-color: var(--accent); }
+.session-type-bar {
+  width: 4px; flex-shrink: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+.session-item-content {
+  flex: 1; padding: 8px 10px; min-width: 0;
+}
+.session-item-title {
+  font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; margin-bottom: 4px;
+}
+.session-item-meta {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+}
+.session-category-pill {
+  display: inline-block; padding: 1px 6px;
+  border-radius: 8px; font-size: 10px;
+  font-weight: 600; color: #fff;
+}
+
+/* Detail Panel */
+#detail-panel {
+  grid-row: 2; grid-column: 2;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg-primary);
+}
+
+/* Welcome & Empty States */
+.state-screen {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; color: var(--text-muted);
+  text-align: center; gap: 12px;
+}
+.state-screen .icon { font-size: 48px; opacity: 0.3; }
+.state-screen h2 { font-size: 20px; color: var(--text-primary); }
+.state-screen p { max-width: 400px; line-height: 1.6; }
+
+/* Session Detail */
+#session-detail { max-width: 900px; }
+.session-type-badge {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 12px; font-size: 11px;
+  font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: #fff; margin-bottom: 8px;
+}
+.session-title-header {
+  font-size: 22px; font-weight: 700;
+  margin-bottom: 16px; line-height: 1.3;
+}
+.metadata-grid {
+  display: grid; grid-template-columns: 140px 1fr;
+  gap: 6px 16px; margin-bottom: 24px;
+  padding: 16px; background: var(--bg-secondary);
+  border-radius: var(--radius-md); border: 1px solid var(--border-light);
+}
+.metadata-grid .meta-label {
+  font-size: 12px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.3px; padding-top: 2px;
+}
+.metadata-grid .meta-value { color: var(--text-primary); font-size: 13px; }
+.status-pill {
+  display: inline-block; padding: 2px 10px;
+  border-radius: 12px; font-size: 12px;
+  font-weight: 600; color: #fff;
+}
+.agent-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.agent-chip {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 12px; font-size: 11px;
+  font-weight: 600; color: #fff;
+}
+.technique-chip {
+  display: inline-block; padding: 2px 8px;
+  background: var(--bg-tertiary); border-radius: 12px;
+  font-size: 11px; color: var(--text-secondary);
+}
+
+/* Rendered Body */
+.session-body-rendered {
+  margin-bottom: 24px; line-height: 1.7;
+}
+.session-body-rendered h2 {
+  font-size: 18px; margin: 24px 0 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-light);
+}
+.session-body-rendered h3 { font-size: 15px; margin: 16px 0 6px; }
+.session-body-rendered p { margin: 8px 0; color: var(--text-secondary); }
+.session-body-rendered ul, .session-body-rendered ol {
+  margin: 8px 0; padding-left: 24px; color: var(--text-secondary);
+}
+.session-body-rendered li { margin: 4px 0; }
+.session-body-rendered strong { color: var(--text-primary); }
+.session-body-rendered code {
+  background: var(--bg-tertiary); padding: 1px 5px;
+  border-radius: 3px; font-size: 13px;
+}
+.session-body-rendered pre {
+  background: var(--bg-tertiary); padding: 12px;
+  border-radius: var(--radius-sm); overflow-x: auto;
+  margin: 8px 0;
+}
+.session-body-rendered pre code { background: none; padding: 0; }
+.session-body-rendered blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 8px 16px; margin: 8px 0;
+  color: var(--text-secondary); background: var(--bg-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.session-body-rendered hr {
+  border: none; border-top: 1px solid var(--border-color); margin: 16px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #app { grid-template-columns: 0px 1fr; }
+  #app.sidebar-open { grid-template-columns: var(--sidebar-width) 1fr; }
+  #sidebar { position: absolute; top: var(--toolbar-height); left: 0; bottom: 0; width: var(--sidebar-width); z-index: 5; }
+  #app:not(.sidebar-open) #sidebar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <button class="btn-icon" id="btn-toggle-sidebar" title="Toggle sidebar">☰</button>
+    <span style="font-weight:700;font-size:15px;">🧠 Cognitive Forge</span>
+    <div class="folder-path hidden" id="folder-path">
+      <span>📁</span><span id="folder-name"></span>
+    </div>
+    <div class="spacer"></div>
+    <span class="refresh-indicator" id="refresh-indicator"></span>
+    <button class="btn-icon" id="btn-refresh" title="Refresh">🔄</button>
+    <button class="btn-icon" id="btn-theme" title="Toggle theme">🌙</button>
+    <button class="btn-icon" id="btn-folder" title="Select sessions folder">📂</button>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="filter-bar">
+      <div class="filter-btn active" data-filter="all">All</div>
+      <div class="filter-btn" data-filter="debate">Debates</div>
+      <div class="filter-btn" data-filter="explore">Explorations</div>
+    </div>
+    <div id="session-list"></div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div id="detail-panel">
+    <div id="welcome-screen" class="state-screen">
+      <div class="icon">🧠</div>
+      <h2>Cognitive Forge Dashboard</h2>
+      <p>Browse past debate and exploration sessions. Select your <code>cognitive-forge/sessions</code> folder to get started.</p>
+      <button class="primary" id="btn-welcome-folder">Select Sessions Folder</button>
+    </div>
+    <div id="empty-state" class="state-screen hidden">
+      <div class="icon">📭</div>
+      <h2>No Sessions Found</h2>
+      <p>Run <code>/cognitive-forge:debate</code> or <code>/cognitive-forge:explore</code> to generate your first session, then refresh.</p>
+    </div>
+    <div id="session-detail" class="hidden"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   YAML PARSER — Lightweight parser for frontmatter format
+   ═══════════════════════════════════════════════════════════════ */
+const YAML = {
+  parse(str) {
+    if (!str || !str.trim()) return {};
+    const result = {};
+    const lines = str.split('\n');
+    let currentKey = null;
+    let inArray = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+
+      // Array item (indented with -)
+      if (/^\s+- /.test(line) && inArray && currentKey) {
+        const val = trimmed.substring(2).trim();
+        result[currentKey].push(this._parseValue(val));
+        continue;
+      }
+
+      // End of array if we hit a non-indented, non-array line
+      if (inArray && !/^\s/.test(line)) inArray = false;
+
+      // Key-value pair
+      const colonIdx = line.indexOf(':');
+      if (colonIdx > 0 && /^[a-zA-Z_]/.test(line)) {
+        const key = line.substring(0, colonIdx).trim();
+        let value = line.substring(colonIdx + 1).trim();
+        currentKey = key;
+
+        if (value === '' || value === '~') {
+          // Check if next non-blank line is an array item
+          let next = i + 1;
+          while (next < lines.length && lines[next].trim() === '') next++;
+          if (next < lines.length && /^\s+- /.test(lines[next])) {
+            result[key] = [];
+            inArray = true;
+          } else {
+            result[key] = null;
+            inArray = false;
+          }
+        } else if (value === '[]') {
+          result[key] = [];
+          inArray = false;
+        } else {
+          result[key] = this._parseValue(value);
+          inArray = false;
+        }
+      }
+    }
+    return result;
+  },
+
+  _parseValue(v) {
+    // Strip inline comments (not inside quotes)
+    if (!v.startsWith('"') && !v.startsWith("'")) {
+      const ci = v.indexOf(' #');
+      if (ci > 0) v = v.substring(0, ci).trim();
+    }
+    if (v === 'null' || v === '~') return null;
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    // Quoted string
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      return v.slice(1, -1);
+    // Inline array
+    if (v.startsWith('[') && v.endsWith(']')) {
+      const inner = v.slice(1, -1).trim();
+      if (!inner) return [];
+      return inner.split(',').map(x => this._parseValue(x.trim()));
+    }
+    // Integer
+    if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+    // Float
+    if (/^-?\d+\.\d+$/.test(v)) return parseFloat(v);
+    // Date (keep as string)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    return v;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   MARKDOWN RENDERER
+   ═══════════════════════════════════════════════════════════════ */
+const MD = {
+  render(src) {
+    if (!src) return '';
+    const lines = src.split('\n');
+    const blocks = this._parseBlocks(lines);
+    return blocks.map(b => this._renderBlock(b)).join('\n');
+  },
+
+  _parseBlocks(lines) {
+    const blocks = [];
+    let cur = null;
+    const push = () => { if (cur) { blocks.push(cur); cur = null; } };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Inside code block
+      if (cur && cur.type === 'code') {
+        if (line.trim().startsWith('```')) { push(); }
+        else cur.lines.push(line);
+        continue;
+      }
+
+      // Code block start
+      if (line.trim().startsWith('```')) {
+        push();
+        cur = { type: 'code', lang: line.trim().slice(3).trim(), lines: [] };
+        continue;
+      }
+
+      // Heading
+      const hm = line.match(/^(#{1,6})\s+(.+)$/);
+      if (hm) { push(); blocks.push({ type: 'heading', level: hm[1].length, text: hm[2] }); continue; }
+
+      // HR
+      if (/^(\s*[-*_]){3,}\s*$/.test(line)) { push(); blocks.push({ type: 'hr' }); continue; }
+
+      // Blockquote
+      const bq = line.match(/^>\s?(.*)$/);
+      if (bq) {
+        if (!cur || cur.type !== 'blockquote') { push(); cur = { type: 'blockquote', lines: [] }; }
+        cur.lines.push(bq[1]);
+        continue;
+      }
+
+      // Unordered list
+      const ul = line.match(/^(\s*)([-*+])\s+(.+)$/);
+      if (ul) {
+        if (!cur || cur.type !== 'ul') { push(); cur = { type: 'ul', items: [] }; }
+        cur.items.push(ul[3]);
+        continue;
+      }
+
+      // Ordered list
+      const ol = line.match(/^(\s*)(\d+)\.\s+(.+)$/);
+      if (ol) {
+        if (!cur || cur.type !== 'ol') { push(); cur = { type: 'ol', items: [] }; }
+        cur.items.push(ol[3]);
+        continue;
+      }
+
+      // Blank line
+      if (!line.trim()) { push(); continue; }
+
+      // Paragraph
+      if (!cur || cur.type !== 'paragraph') { push(); cur = { type: 'paragraph', lines: [] }; }
+      cur.lines.push(line);
+    }
+    push();
+    return blocks;
+  },
+
+  _renderBlock(b) {
+    switch (b.type) {
+      case 'heading': return `<h${b.level}>${this._inline(b.text)}</h${b.level}>`;
+      case 'paragraph': return `<p>${b.lines.map(l => this._inline(l)).join(' ')}</p>`;
+      case 'ul': return `<ul>${b.items.map(i => `<li>${this._inline(i)}</li>`).join('')}</ul>`;
+      case 'ol': return `<ol>${b.items.map(i => `<li>${this._inline(i)}</li>`).join('')}</ol>`;
+      case 'hr': return '<hr>';
+      case 'blockquote': return `<blockquote>${b.lines.map(l => `<p>${this._inline(l)}</p>`).join('')}</blockquote>`;
+      case 'code': {
+        const esc = b.lines.join('\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return `<pre><code>${esc}</code></pre>`;
+      }
+      default: return '';
+    }
+  },
+
+  _inline(t) {
+    t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    t = t.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+    t = t.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>');
+    t = t.replace(/`(.+?)`/g, '<code>$1</code>');
+    t = t.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return t;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY FUNCTIONS
+   ═══════════════════════════════════════════════════════════════ */
+function escapeHTML(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getCategoryColor(cat) {
+  if (!cat) return 'var(--text-muted)';
+  const map = {
+    'business': 'var(--cat-business)',
+    'philosophical': 'var(--cat-philosophical)',
+    'framework': 'var(--cat-framework)',
+    'creative': 'var(--cat-creative)'
+  };
+  return map[cat.toLowerCase()] || 'var(--text-muted)';
+}
+
+function getTypeColor(type) {
+  if (type === 'debate') return 'var(--type-debate)';
+  if (type === 'explore') return 'var(--type-explore)';
+  return 'var(--text-muted)';
+}
+
+function getAgentColor(name) {
+  const map = {
+    'challenger': '#e74c3c',
+    'explorer': '#27ae60',
+    'synthesizer': '#3498db',
+    'decomposer': '#f59e0b',
+    'evaluator': '#8b5cf6'
+  };
+  return map[name] || '#6c6c80';
+}
+
+function getStatusColor(status) {
+  if (!status) return 'var(--text-muted)';
+  if (status === 'complete') return 'var(--status-complete)';
+  if (status === 'partial') return 'var(--status-partial)';
+  return 'var(--text-muted)';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FILE SYSTEM MANAGER (read-only)
+   ═══════════════════════════════════════════════════════════════ */
+class FileSystemManager {
+  constructor() {
+    this.dirHandle = null;
+    this.dbName = 'CognitiveForgeDashboard';
+    this.storeName = 'handles';
+  }
+
+  async openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(this.dbName, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(this.storeName);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async saveHandle(handle) {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, 'readwrite');
+      tx.objectStore(this.storeName).put(handle, 'sessionsDir');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async loadHandle() {
+    try {
+      const db = await this.openDB();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readonly');
+        const req = tx.objectStore(this.storeName).get('sessionsDir');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch { return null; }
+  }
+
+  async pickDirectory() {
+    const handle = await window.showDirectoryPicker({ mode: 'read' });
+    this.dirHandle = handle;
+    await this.saveHandle(handle);
+    return handle;
+  }
+
+  async requestPermission(handle) {
+    const opts = { mode: 'read' };
+    if (await handle.queryPermission(opts) === 'granted') return true;
+    if (await handle.requestPermission(opts) === 'granted') return true;
+    return false;
+  }
+
+  async scanFiles() {
+    if (!this.dirHandle) return [];
+    const sessions = [];
+    const expectedDirs = ['debates', 'explorations'];
+
+    try {
+      for await (const entry of this.dirHandle.values()) {
+        if (entry.kind !== 'directory') continue;
+        if (!expectedDirs.includes(entry.name)) continue;
+
+        const sessionType = entry.name === 'debates' ? 'debate' : 'explore';
+        try {
+          for await (const fileEntry of entry.values()) {
+            if (fileEntry.kind !== 'file' || !fileEntry.name.endsWith('.md')) continue;
+            try {
+              const file = await fileEntry.getFile();
+              const content = await file.text();
+              const parsed = this.parseSession(fileEntry.name, content, sessionType);
+              if (parsed) {
+                parsed.lastModified = file.lastModified;
+                sessions.push(parsed);
+              }
+            } catch (e) {
+              console.warn(`Failed to read ${fileEntry.name}:`, e);
+            }
+          }
+        } catch (e) {
+          console.warn(`Failed to scan directory ${entry.name}:`, e);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to scan root directory:', e);
+    }
+
+    // Sort by date descending (newest first)
+    sessions.sort((a, b) => {
+      const da = a.frontmatter.created || '';
+      const db = b.frontmatter.created || '';
+      return db.localeCompare(da);
+    });
+
+    return sessions;
+  }
+
+  parseSession(filename, content, inferredType) {
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+    if (!match) return null;
+    try {
+      const frontmatter = YAML.parse(match[1]);
+      const body = (match[2] || '').trim();
+      if (!frontmatter.type) frontmatter.type = inferredType;
+      return { filename, frontmatter, body };
+    } catch (e) {
+      console.warn(`YAML parse error in ${filename}:`, e);
+      return null;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APPLICATION
+   ═══════════════════════════════════════════════════════════════ */
+const fs = new FileSystemManager();
+let allSessions = [];
+let activeFilter = 'all';
+let selectedSession = null;
+let refreshInterval = null;
+
+// DOM references
+const app = document.getElementById('app');
+const folderPath = document.getElementById('folder-path');
+const folderName = document.getElementById('folder-name');
+const refreshIndicator = document.getElementById('refresh-indicator');
+const sessionList = document.getElementById('session-list');
+const welcomeScreen = document.getElementById('welcome-screen');
+const emptyState = document.getElementById('empty-state');
+const sessionDetail = document.getElementById('session-detail');
+
+// ─── Folder Selection ──────────────────────────────────────
+async function selectFolder() {
+  try {
+    const handle = await fs.pickDirectory();
+    folderPath.classList.remove('hidden');
+    folderName.textContent = handle.name;
+    await loadSessions();
+    startAutoRefresh();
+  } catch (e) {
+    if (e.name !== 'AbortError') console.error('Folder selection failed:', e);
+  }
+}
+
+async function tryRestoreHandle() {
+  const handle = await fs.loadHandle();
+  if (!handle) return false;
+  const granted = await fs.requestPermission(handle);
+  if (!granted) return false;
+  fs.dirHandle = handle;
+  folderPath.classList.remove('hidden');
+  folderName.textContent = handle.name;
+  await loadSessions();
+  startAutoRefresh();
+  return true;
+}
+
+// ─── Session Loading ────────────────────────────────────────
+async function loadSessions() {
+  allSessions = await fs.scanFiles();
+  renderSessionList();
+  updateDetailView();
+}
+
+function renderSessionList() {
+  const filtered = activeFilter === 'all'
+    ? allSessions
+    : allSessions.filter(s => s.frontmatter.type === activeFilter);
+
+  if (allSessions.length === 0) {
+    welcomeScreen.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    sessionDetail.classList.add('hidden');
+    sessionList.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No sessions yet</div>';
+    return;
+  }
+
+  welcomeScreen.classList.add('hidden');
+  emptyState.classList.add('hidden');
+
+  if (filtered.length === 0) {
+    sessionList.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No ${activeFilter} sessions</div>`;
+    return;
+  }
+
+  sessionList.innerHTML = filtered.map(s => {
+    const fm = s.frontmatter;
+    const typeColor = getTypeColor(fm.type);
+    const catColor = getCategoryColor(fm.category);
+    const isSelected = selectedSession && selectedSession.filename === s.filename;
+    return `
+      <div class="session-item ${isSelected ? 'selected' : ''}" data-filename="${escapeHTML(s.filename)}">
+        <div class="session-type-bar" style="background:${typeColor}"></div>
+        <div class="session-item-content">
+          <div class="session-item-title">${escapeHTML(fm.title || s.filename)}</div>
+          <div class="session-item-meta">
+            <span class="session-category-pill" style="background:${catColor}">${escapeHTML(fm.category || 'Unknown')}</span>
+            <span>${escapeHTML(fm.created || '')}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach click handlers
+  sessionList.querySelectorAll('.session-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const filename = el.dataset.filename;
+      selectedSession = allSessions.find(s => s.filename === filename) || null;
+      renderSessionList();
+      renderDetail();
+    });
+  });
+}
+
+function updateDetailView() {
+  if (allSessions.length === 0 && !fs.dirHandle) {
+    welcomeScreen.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    sessionDetail.classList.add('hidden');
+  } else if (allSessions.length === 0) {
+    welcomeScreen.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    sessionDetail.classList.add('hidden');
+  } else if (!selectedSession) {
+    welcomeScreen.classList.add('hidden');
+    emptyState.classList.add('hidden');
+    sessionDetail.classList.add('hidden');
+  }
+}
+
+// ─── Detail Rendering ───────────────────────────────────────
+function renderDetail() {
+  if (!selectedSession) {
+    sessionDetail.classList.add('hidden');
+    return;
+  }
+
+  const fm = selectedSession.frontmatter;
+  const typeColor = getTypeColor(fm.type);
+  const typeLabel = fm.type === 'debate' ? 'Debate' : 'Exploration';
+
+  let metaRows = '';
+
+  // Category
+  if (fm.category) {
+    metaRows += `<div class="meta-label">Category</div>
+      <div class="meta-value"><span class="session-category-pill" style="background:${getCategoryColor(fm.category)}">${escapeHTML(fm.category)}</span></div>`;
+  }
+
+  // Date
+  if (fm.created) {
+    metaRows += `<div class="meta-label">Date</div><div class="meta-value">${escapeHTML(fm.created)}</div>`;
+  }
+
+  // Status
+  if (fm.status) {
+    metaRows += `<div class="meta-label">Status</div>
+      <div class="meta-value"><span class="status-pill" style="background:${getStatusColor(fm.status)}">${escapeHTML(fm.status)}</span></div>`;
+  }
+
+  // Concept
+  if (fm.concept) {
+    metaRows += `<div class="meta-label">Concept</div><div class="meta-value">${escapeHTML(fm.concept)}</div>`;
+  }
+
+  // Debate-specific fields
+  if (fm.type === 'debate') {
+    // Agents
+    if (fm.agents && fm.agents.length) {
+      const chips = fm.agents.map(a => `<span class="agent-chip" style="background:${getAgentColor(a)}">${escapeHTML(a)}</span>`).join('');
+      metaRows += `<div class="meta-label">Agents</div><div class="meta-value"><div class="agent-chips">${chips}</div></div>`;
+    }
+    // Cross-examination
+    if (fm.cross_examination !== undefined) {
+      metaRows += `<div class="meta-label">Cross-Exam</div><div class="meta-value">${fm.cross_examination ? 'Yes' : 'No'}</div>`;
+    }
+  }
+
+  // Explore-specific fields
+  if (fm.type === 'explore') {
+    // Relationship
+    if (fm.relationship) {
+      metaRows += `<div class="meta-label">Relationship</div><div class="meta-value">${escapeHTML(fm.relationship)}</div>`;
+    }
+    // Recruited agents
+    if (fm.agents_recruited && fm.agents_recruited.length) {
+      const chips = fm.agents_recruited.map(a => `<span class="agent-chip" style="background:${getAgentColor(a)}">${escapeHTML(a)}</span>`).join('');
+      metaRows += `<div class="meta-label">Recruited</div><div class="meta-value"><div class="agent-chips">${chips}</div></div>`;
+    }
+    // Techniques
+    if (fm.techniques_applied && fm.techniques_applied.length) {
+      const chips = fm.techniques_applied.map(t => `<span class="technique-chip">${escapeHTML(t)}</span>`).join(' ');
+      metaRows += `<div class="meta-label">Techniques</div><div class="meta-value">${chips}</div>`;
+    }
+  }
+
+  const renderedBody = MD.render(selectedSession.body);
+
+  sessionDetail.innerHTML = `
+    <div class="session-type-badge" style="background:${typeColor}">${typeLabel}</div>
+    <div class="session-title-header">${escapeHTML(fm.title || selectedSession.filename)}</div>
+    <div class="metadata-grid">${metaRows}</div>
+    <div class="session-body-rendered">${renderedBody}</div>
+  `;
+
+  sessionDetail.classList.remove('hidden');
+  emptyState.classList.add('hidden');
+  welcomeScreen.classList.add('hidden');
+  sessionDetail.scrollTop = 0;
+}
+
+// ─── Auto-Refresh ───────────────────────────────────────────
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(async () => {
+    if (!fs.dirHandle) return;
+    const newSessions = await fs.scanFiles();
+    // Check if anything changed
+    if (JSON.stringify(newSessions.map(s => s.filename + s.lastModified)) !==
+        JSON.stringify(allSessions.map(s => s.filename + s.lastModified))) {
+      allSessions = newSessions;
+      // Re-select current session if still present
+      if (selectedSession) {
+        selectedSession = allSessions.find(s => s.filename === selectedSession.filename) || null;
+      }
+      renderSessionList();
+      if (selectedSession) renderDetail();
+      else updateDetailView();
+      refreshIndicator.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    }
+  }, 5000);
+}
+
+// ─── Filter Bar ─────────────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderSessionList();
+  });
+});
+
+// ─── Theme Toggle ───────────────────────────────────────────
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('btn-theme').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+document.getElementById('btn-theme').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// Forge Shell theme listener
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'forge-shell:theme') {
+    setTheme(e.data.theme);
+  }
+});
+
+// ─── Sidebar Toggle ─────────────────────────────────────────
+document.getElementById('btn-toggle-sidebar').addEventListener('click', () => {
+  app.classList.toggle('sidebar-collapsed');
+  app.classList.toggle('sidebar-open');
+});
+
+// ─── Button Handlers ────────────────────────────────────────
+document.getElementById('btn-folder').addEventListener('click', selectFolder);
+document.getElementById('btn-welcome-folder').addEventListener('click', selectFolder);
+document.getElementById('btn-refresh').addEventListener('click', loadSessions);
+
+// ─── Init ───────────────────────────────────────────────────
+(async function init() {
+  // Detect system dark mode preference
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    setTheme('dark');
+  }
+  // Try to restore a previously saved handle
+  const restored = await tryRestoreHandle();
+  if (!restored) {
+    welcomeScreen.classList.remove('hidden');
+  }
+})();
+</script>
+</body>
+</html>

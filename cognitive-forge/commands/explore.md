@@ -181,6 +181,50 @@ The synthesis should address:
 - What is the refined understanding?
 - What are the concrete next steps?
 
+## Phase 7: Persist Session
+
+After delivering the synthesis, save a clean narrative summary of the exploration to disk so it can be reviewed in the Cognitive Forge dashboard.
+
+### Assembly
+
+Assemble a narrative summary from the dialogue (not a raw transcript). Structure it as a coherent document that captures:
+
+1. **Starting point** — the concept as framed and the chosen relationship
+2. **Exploration journey** — key insights, turns, and technique applications in narrative form
+3. **Recruited agent contributions** (if any) — integrated into the narrative where they occurred
+4. **Synthesis** — the refined understanding from Phase 6
+
+### File Format
+
+Write a single markdown file with YAML frontmatter:
+
+```yaml
+---
+title: "Concept title as confirmed in Phase 1"
+type: explore
+category: Business|Philosophical|Framework|Creative
+concept: "Full concept text as confirmed"
+relationship: creator|evaluator|inheritor
+agents_recruited: []
+techniques_applied: [perspective-synthesis, boundary-mapping]
+status: complete
+created: YYYY-MM-DD
+---
+```
+
+- Populate `agents_recruited` with `decomposer` and/or `evaluator` if they were recruited during the exploration. Leave as empty array `[]` if none were used.
+- Populate `techniques_applied` with the cognitive techniques actually used during the session (e.g., `perspective-synthesis`, `boundary-mapping`, `constraint-shaping`, `pre-mortem`, `inversion`, `adjacent-possibilities`).
+- Set `status: partial` if the exploration was interrupted or incomplete.
+
+### File Path
+
+Write to: `cognitive-forge/sessions/explorations/{YYYY-MM-DD}-{concept-slug}.md`
+
+- `{YYYY-MM-DD}` is today's date.
+- `{concept-slug}` is the concept title lowercased, with spaces replaced by hyphens and non-alphanumeric characters removed (e.g., "Emergent Complexity" becomes `emergent-complexity`).
+- Create the `cognitive-forge/sessions/explorations/` directory if it does not exist.
+- Confirm the saved file path to the user after writing.
+
 ## Agent Recruitment Protocol
 
 You may recruit exactly two agent types during exploration:

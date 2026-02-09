@@ -240,6 +240,49 @@ After all agent perspectives (and any cross-examination), produce the final synt
 - **Preserve surprise** — if an agent produced an unexpected insight, highlight it.
 - **Be actionable** — the user should leave with specific next steps, not just analysis.
 
+## Phase 6: Persist Session
+
+After delivering the synthesis, save the complete session to disk so it can be reviewed in the Cognitive Forge dashboard.
+
+### Assembly
+
+Assemble the full session content in this order:
+
+1. **Intake summary** — the confirmed concept and classification from Phase 1
+2. **Agent analyses** — each agent's full analysis from Phase 2, separated by headings
+3. **Debate landscape** — the convergence/divergence mapping from Phase 3
+4. **Cross-examination** (if conducted) — the targeted exchange from Phase 4
+5. **Synthesis** — the complete Forge Report from Phase 5
+
+### File Format
+
+Write a single markdown file with YAML frontmatter:
+
+```yaml
+---
+title: "Concept title as confirmed in Phase 1"
+type: debate
+category: Business|Philosophical|Framework|Creative
+concept: "Full concept text as confirmed"
+agents: [challenger, explorer, synthesizer]
+cross_examination: true|false
+status: complete
+created: YYYY-MM-DD
+---
+```
+
+- Include `decomposer` and/or `evaluator` in the `agents` array if they were recruited.
+- Set `status: partial` if the debate was interrupted or incomplete.
+
+### File Path
+
+Write to: `cognitive-forge/sessions/debates/{YYYY-MM-DD}-{concept-slug}.md`
+
+- `{YYYY-MM-DD}` is today's date.
+- `{concept-slug}` is the concept title lowercased, with spaces replaced by hyphens and non-alphanumeric characters removed (e.g., "AI Safety Alignment" becomes `ai-safety-alignment`).
+- Create the `cognitive-forge/sessions/debates/` directory if it does not exist.
+- Confirm the saved file path to the user after writing.
+
 ## Anti-Patterns
 
 Avoid these failure modes:

@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "the-forge-marketplace",
-  "description": "A curated collection of Claude Code plugins for reasoning, analysis, and creative exploration.",
-  "version": "1.1.0",
+  "description": "A curated suite for product management and productivity tools to support reasoning, analysis, and creative work.",
+  "version": "0.2.1",
   "owner": {
     "name": "Jeremy Brice"
   },
@@ -10,11 +10,23 @@
     {
       "name": "cognitive-forge",
       "source": "./cognitive-forge",
-      "description": "Deep concept evaluation through multi-agent debate (/debate) and interactive guided exploration (/explore). Spawns specialized agents (Challenger, Explorer, Synthesizer) for parallel analysis, or leads iterative dialogue as the Guide with selective agent recruitment.",
-      "version": "1.1.0",
-      "category": "reasoning",
-      "keywords": ["reasoning", "evaluation", "debate", "multi-agent", "concept-analysis", "explore", "dialogue"],
-      "tags": ["cognitive", "forge", "ideation", "strategy", "exploration"]
+      "description": "Deep concept evaluation through multi-agent debate (/debate) and interactive guided exploration (/explore). Spawns specialized agents (Challenger, Explorer, Synthesizer) for parallel analysis, or leads iterative dialogue as the Guide with selective agent recruitment."
+    },
+    {
+      "name": "productivity",
+      "source": "./productivity",
+      "description": "Manage tasks, plan your day, and build up memory of important context about your work. Syncs with your calendar, email, and chat to keep everything organized and on track."
+
+    },
+    {
+      "name": "product-forge-local",
+      "source": "./product-forge-local",
+      "description": "Local-first product management commands for structured card generation. Automates Initiative, Epic, and Story card creation with local markdown file persistence."
+    },
+    {
+      "name": "forge-shell",
+      "source": "./forge-shell",
+      "description": "Unified shell that provides a navbar-driven index page for switching between plugin dashboards via iframes."
     }
   ]
 }

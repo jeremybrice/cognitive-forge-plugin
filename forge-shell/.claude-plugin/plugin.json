@@ -1,0 +1,13 @@
+{
+  "name": "forge-shell",
+  "version": "1.0.0",
+  "description": "Unified shell that provides a navbar-driven index page for switching between plugin dashboards via iframes.",
+  "author": {
+    "name": "Jeremy Brice"
+  },
+  "dashboard": {
+    "path": "shell.html",
+    "label": "Forge Shell",
+    "icon": "🐚"
+  }
+}

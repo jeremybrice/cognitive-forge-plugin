@@ -1,0 +1,13 @@
+{
+  "name": "product-forge-local",
+  "description": "Local-first product management commands for structured card generation. Automates Initiative, Epic, and Story card creation with local markdown file persistence.",
+  "version": "1.0.5",
+  "author": {
+    "name": "Jeremy Brice"
+  },
+  "dashboard": {
+    "path": "viewer.html",
+    "label": "Product Forge",
+    "icon": "🔨"
+  }
+}

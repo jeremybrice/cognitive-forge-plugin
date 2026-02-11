@@ -1,27 +1,15 @@
 ---
 name: remove
-description: Remove a plugin from the Forge Shell sidebar
-arguments:
-  - name: plugin-name
-    description: Name of the plugin to remove
-    required: true
+description: Show how to hide a plugin in Forge Shell
 ---
 
-# /shell:remove <plugin-name>
+# /shell:remove
 
-Remove a plugin dashboard from the Forge Shell.
+All plugins are built into Forge Shell. They cannot be removed, but they can be hidden from the sidebar.
 
 ## Steps
 
-1. Read `src/shell-registry.json` from the work folder. If it doesn't exist, report that no plugins are registered.
-
-2. Find the entry whose `name` matches `<plugin-name>`.
-   - If not found, report an error listing currently registered plugins.
-
-3. Delete the copied dashboard file at `src/<entry.dashboardUrl>`.
-
-4. Remove the entry from the `plugins` array.
-
-5. Write the updated `src/shell-registry.json`.
-
-6. Confirm: "Removed **<plugin-name>** from Forge Shell. Run `/shell:open` to refresh."
+1. Explain to the user:
+   - "Forge Shell plugins are built-in and cannot be removed. To hide a plugin from the sidebar, click the **pencil icon** at the bottom of the sidebar to enter edit mode, then click the **eye icon** next to the plugin you want to hide."
+   - "Hidden plugins are remembered across sessions. You can re-enable them at any time using the same edit mode."
+   - "Run `/shell:open` to launch the dashboard."

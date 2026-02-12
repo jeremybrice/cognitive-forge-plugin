@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/cognitive-forge.css">
   <link rel="stylesheet" href="css/product-forge.css">
   <link rel="stylesheet" href="css/productivity.css">
+  <link rel="stylesheet" href="css/roadmap.css">
+  <link rel="stylesheet" href="css/rovo-agent-forge.css">
 </head>
 <body>
 
@@ -22,7 +24,7 @@
       <h1>Forge Shell</h1>
       <p>Unified dashboard for all your Forge plugins. Select your project root directory to get started.</p>
       <button class="btn-select" id="btn-welcome-select">Select Project Folder</button>
-      <p class="note">Choose your <strong>project root</strong> directory (the one containing <code>sessions/</code>, <code>cards/</code>, <code>TASKS.md</code>, <code>memory/</code>, etc.).</p>
+      <p class="note">Choose your <strong>project root</strong> directory (the one containing <code>sessions/</code>, <code>cards/</code>, <code>rovo-agents/</code>, <code>TASKS.md</code>, <code>memory/</code>, etc.).</p>
     </div>
   </div>
 
@@ -59,9 +61,19 @@
         <!-- Rendered by ProductForgeLocalView controller -->
       </div>
 
+      <!-- Roadmap View -->
+      <div id="view-roadmap" class="shell-view">
+        <!-- Rendered by RoadmapView controller -->
+      </div>
+
       <!-- Productivity View -->
       <div id="view-productivity" class="shell-view">
         <!-- Rendered by ProductivityView controller -->
+      </div>
+
+      <!-- Rovo Agent Forge View -->
+      <div id="view-rovo-agent-forge" class="shell-view">
+        <!-- Rendered by RovoAgentForgeView controller -->
       </div>
 
     </div>
@@ -85,10 +97,13 @@
 
   <!-- Scripts -->
   <script src="js/utils.js"></script>
+  <script src="js/card-data.js"></script>
   <script src="js/shell.js"></script>
   <script src="js/cognitive-forge.js"></script>
   <script src="js/product-forge.js"></script>
   <script src="js/productivity.js"></script>
+  <script src="js/roadmap.js"></script>
+  <script src="js/rovo-agent-forge.js"></script>
 
 </body>
 </html>

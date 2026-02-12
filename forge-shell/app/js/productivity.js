@@ -29,12 +29,14 @@ window.ProductivityView = (function () {
   let lastModified = 0;
   let taskWatchInterval = null;
   let isSaving = false;
+  let taskRefreshRunning = false;
+  let taskSignature = '';
 
   /* Memory state */
   let memoryDirHandle = null;     // same as rootHandle
   let memoryData = { claudeMd: null, memoryFiles: [], memoryDirs: {} };
   let memoryWatchInterval = null;
-  let memoryLastModifiedMap = {};
+  let memorySignature = '';
   let isMemoryRefreshing = false;
   let activeMemoryTab = null;
 
@@ -356,26 +358,31 @@ window.ProductivityView = (function () {
   }
 
   async function checkForExternalChanges() {
-    if (!taskFileHandle || hasChanges || isSaving) return;
+    if (!taskFileHandle || hasChanges || isSaving || taskRefreshRunning) return;
+    taskRefreshRunning = true;
     try {
       var file = await taskFileHandle.getFile();
-      if (file.lastModified > lastModified) {
+      var newSignature = 'TASKS.md:' + file.lastModified;
+      if (newSignature !== taskSignature) {
         lastModified = file.lastModified;
+        taskSignature = newSignature;
         var content = await file.text();
         var result = parseTaskMarkdown(content);
         sections = result.sections;
         tasks = result.tasks;
         renderTasks();
-        showStatus('Reloaded');
+        // Toast removed - only manual refresh shows toast
       }
     } catch (e) {
       /* ignore */
+    } finally {
+      taskRefreshRunning = false;
     }
   }
 
   function startTaskWatching() {
     stopTaskWatching();
-    taskWatchInterval = setInterval(checkForExternalChanges, 1000);
+    taskWatchInterval = setInterval(checkForExternalChanges, 5000);
   }
 
   function stopTaskWatching() {
@@ -388,8 +395,10 @@ window.ProductivityView = (function () {
   async function handleRefresh() {
     if (activeMainTab === 'tasks') {
       await checkForExternalChanges();
+      showStatus('Tasks refreshed');
     } else {
       await checkForMemoryChanges();
+      showStatus('Memory refreshed');
     }
     var indicator = $('[data-ref="refresh-indicator"]');
     if (indicator) {
@@ -1392,7 +1401,7 @@ window.ProductivityView = (function () {
       if (mainEl) mainEl.style.display = 'flex';
       renderMemoryTabs();
       renderMemoryContent();
-      memoryLastModifiedMap = await buildMemoryTimestampMap();
+      memorySignature = await buildMemorySignature();
       startMemoryWatching();
     } else {
       if (emptyEl) emptyEl.style.display = '';
@@ -1404,13 +1413,13 @@ window.ProductivityView = (function () {
      MEMORY — Watching
      Uses ForgeFS abstraction for dual-mode (browser/Tauri) support
      ══════════════════════════════════════════════════════════ */
-  async function buildMemoryTimestampMap() {
-    var map = {};
+  async function buildMemorySignature() {
+    var entries = [];
 
     if (memoryData.claudeMd) {
       try {
         var meta = await ForgeFS.getFileMeta(memoryDirHandle, 'CLAUDE.md');
-        map['CLAUDE.md'] = meta.modified;
+        entries.push('CLAUDE.md:' + meta.modified);
       } catch (e) { /* skip */ }
     }
 
@@ -1418,21 +1427,24 @@ window.ProductivityView = (function () {
       var mf = memoryData.memoryFiles[i];
       try {
         var meta2 = await ForgeFS.getFileMeta(memoryDirHandle, 'memory/' + mf.name);
-        map['memory/' + mf.name] = meta2.modified;
+        entries.push('memory/' + mf.name + ':' + meta2.modified);
       } catch (e) { /* skip */ }
     }
 
-    for (var dirName in memoryData.memoryDirs) {
+    var dirNames = Object.keys(memoryData.memoryDirs).sort();
+    for (var di = 0; di < dirNames.length; di++) {
+      var dirName = dirNames[di];
       var files = memoryData.memoryDirs[dirName];
       for (var j = 0; j < files.length; j++) {
         try {
           var meta3 = await ForgeFS.getFileMeta(memoryDirHandle, 'memory/' + dirName + '/' + files[j].name);
-          map['memory/' + dirName + '/' + files[j].name] = meta3.modified;
+          entries.push('memory/' + dirName + '/' + files[j].name + ':' + meta3.modified);
         } catch (e) { /* skip */ }
       }
     }
 
-    return map;
+    entries.sort();
+    return entries.join('|');
   }
 
   async function countMemoryFiles() {
@@ -1472,39 +1484,12 @@ window.ProductivityView = (function () {
     var overlay = $('[data-ref="modal-overlay"]');
     if (overlay && overlay.classList.contains('prod-visible')) return;
 
+    isMemoryRefreshing = true;
     try {
-      var changed = false;
-      for (var path in memoryLastModifiedMap) {
-        try {
-          var handle = null;
-          if (path === 'CLAUDE.md') {
-            handle = memoryData.claudeMd ? memoryData.claudeMd.fileHandle : null;
-          } else {
-            var parts = path.split('/');
-            if (parts.length === 2) {
-              var mf = memoryData.memoryFiles.find(function (f) { return f.name === parts[1]; });
-              handle = mf ? mf.fileHandle : null;
-            } else if (parts.length === 3) {
-              var dirFiles = memoryData.memoryDirs[parts[1]];
-              var df = dirFiles ? dirFiles.find(function (f) { return f.name === parts[2]; }) : null;
-              handle = df ? df.fileHandle : null;
-            }
-          }
-          if (handle) {
-            var f = await handle.getFile();
-            if (f.lastModified !== memoryLastModifiedMap[path]) { changed = true; break; }
-          }
-        } catch (e) { changed = true; break; }
-      }
+      var newSignature = await buildMemorySignature();
 
-      if (!changed) {
-        var currentCount = await countMemoryFiles();
-        var knownCount = Object.keys(memoryLastModifiedMap).length;
-        if (currentCount !== knownCount) changed = true;
-      }
-
-      if (changed) {
-        isMemoryRefreshing = true;
+      if (newSignature !== memorySignature) {
+        memorySignature = newSignature;
         var savedTabId = activeMemoryTab;
         var searchInput = $('[data-ref="memory-search"]');
         var savedSearch = searchInput ? searchInput.value : '';
@@ -1530,17 +1515,18 @@ window.ProductivityView = (function () {
           filterMemoryContent(savedSearch);
         }
 
-        showStatus('Memory reloaded');
-        isMemoryRefreshing = false;
+        // Toast removed - only manual refresh shows toast
       }
     } catch (e) {
+      console.warn('Memory refresh error:', e);
+    } finally {
       isMemoryRefreshing = false;
     }
   }
 
   function startMemoryWatching() {
     stopMemoryWatching();
-    memoryWatchInterval = setInterval(checkForMemoryChanges, 1000);
+    memoryWatchInterval = setInterval(checkForMemoryChanges, 5000);
   }
 
   function stopMemoryWatching() {
@@ -2017,6 +2003,7 @@ window.ProductivityView = (function () {
       var result = parseTaskMarkdown(content);
       sections = result.sections;
       tasks = result.tasks;
+      taskSignature = 'TASKS.md:' + lastModified;
       taskFileName = 'TASKS.md';
       updateFolderBadge();
       renderTasks();

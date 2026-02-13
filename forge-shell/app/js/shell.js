@@ -302,8 +302,10 @@ const Shell = {
       pluginToRefresh = 'cognitive-forge';
     } else if (path.includes('/rovo-agents/')) {
       pluginToRefresh = 'rovo-agent-forge';
-    } else if (path.includes('TASKS.md') || path.includes('/memory/')) {
-      pluginToRefresh = 'productivity';
+    } else if (path.includes('/tasks/') || path.includes('TASKS.md')) {
+      pluginToRefresh = 'tasks';
+    } else if (path.includes('/memory/')) {
+      pluginToRefresh = 'memory';
     } else if (path.includes('/roadmap-data/')) {
       pluginToRefresh = 'roadmap';
     }
@@ -317,8 +319,21 @@ const Shell = {
       }
     }
 
-    // Show toast notification
-    ForgeUtils.Toast.show(`File updated: ${path.split('/').pop()}`, 'info', 3000);
+    // Check if plugin is suppressing toasts (internal change)
+    let shouldShowToast = true;
+    if (pluginToRefresh) {
+      const ctrl = this._controllers[pluginToRefresh];
+      if (ctrl && typeof ctrl.isSuppressingToasts === 'function') {
+        shouldShowToast = !ctrl.isSuppressingToasts();
+      }
+    }
+
+    // Show toast notification only if not suppressed
+    if (shouldShowToast) {
+      ForgeUtils.Toast.show(`File updated: ${path.split('/').pop()}`, 'info', 3000);
+    } else {
+      console.log('[Shell] Toast suppressed for internal change');
+    }
   },
 
   /* ── Boot ── */

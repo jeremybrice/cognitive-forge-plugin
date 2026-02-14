@@ -11,6 +11,7 @@ const PLUGINS = [
   { id: 'tasks',               label: 'Tasks',            icon: 'fa-solid fa-list-check',     requiredDir: 'tasks' },
   { id: 'memory',              label: 'Memory',           icon: 'fa-solid fa-brain',          requiredDir: 'memory' },
   { id: 'rovo-agent-forge',    label: 'Rovo Agent Forge', icon: 'fa-solid fa-robot',          requiredDir: 'rovo-agents' },
+  { id: 'report-forge',        label: 'Report Forge',     icon: 'fa-solid fa-file-lines',     requiredDir: 'reports' },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -308,6 +309,8 @@ const Shell = {
       pluginToRefresh = 'memory';
     } else if (path.includes('/roadmap-data/')) {
       pluginToRefresh = 'roadmap';
+    } else if (path.includes('/reports/')) {
+      pluginToRefresh = 'report-forge';
     }
 
     // If a relevant plugin is active, refresh it
